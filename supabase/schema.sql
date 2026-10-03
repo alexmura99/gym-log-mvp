@@ -100,6 +100,7 @@ where id in (
 
 create index if not exists exercises_user_id_idx on public.exercises (user_id);
 create index if not exists exercises_public_idx on public.exercises (is_public);
+create unique index if not exists exercises_public_name_unique on public.exercises (lower(btrim(name))) where is_public;
 create index if not exists weekly_plan_days_user_position_idx on public.weekly_plan_days (user_id, position);
 create index if not exists workouts_user_date_idx on public.workouts (user_id, date desc);
 create index if not exists workout_exercises_workout_idx on public.workout_exercises (workout_id, position);
@@ -109,23 +110,33 @@ create unique index if not exists workout_exercises_position_unique on public.wo
 create unique index if not exists sets_exercise_set_number_unique on public.sets (workout_exercise_id, set_number);
 create index if not exists workout_versions_workout_idx on public.workout_versions (workout_id, version_number desc);
 
+-- Nur einfuegen, wenn es keine oeffentliche Uebung mit diesem Namen gibt. (Ein "on conflict
+-- do nothing" greift hier nicht: Ohne Unique-Index auf dem Namen gibt es nie einen Konflikt.)
 insert into public.exercises (name, muscle_group, is_public)
-values
-  ('Bankdrücken', 'Brust', true),
-  ('Schrägbankdrücken', 'Brust', true),
-  ('Kurzhantel-Bankdrücken', 'Brust', true),
-  ('Schulterdrücken', 'Schultern', true),
-  ('Seitheben', 'Schultern', true),
-  ('Kniebeuge', 'Beine', true),
-  ('Beinpresse', 'Beine', true),
-  ('Kreuzheben', 'Rücken', true),
-  ('Rumänisches Kreuzheben', 'Rücken', true),
-  ('Latzug', 'Rücken', true),
-  ('Klimmzüge', 'Rücken', true),
-  ('Rudern', 'Rücken', true),
-  ('Bizepscurls', 'Bizeps', true),
-  ('Trizepsdrücken', 'Trizeps', true)
-on conflict do nothing;
+select v.name, v.muscle_group, true
+from (
+  values
+    ('Bankdrücken', 'Brust'),
+    ('Schrägbankdrücken', 'Brust'),
+    ('Kurzhantel-Bankdrücken', 'Brust'),
+    ('Schulterdrücken', 'Schultern'),
+    ('Seitheben', 'Schultern'),
+    ('Kniebeuge', 'Beine'),
+    ('Beinpresse', 'Beine'),
+    ('Kreuzheben', 'Rücken'),
+    ('Rumänisches Kreuzheben', 'Rücken'),
+    ('Latzug', 'Rücken'),
+    ('Klimmzüge', 'Rücken'),
+    ('Rudern', 'Rücken'),
+    ('Bizepscurls', 'Bizeps'),
+    ('Trizepsdrücken', 'Trizeps')
+) as v(name, muscle_group)
+where not exists (
+  select 1
+  from public.exercises e
+  where e.is_public
+    and lower(btrim(e.name)) = lower(btrim(v.name))
+);
 
 -- Die Funktion save_workout (Speichern/Ersetzen eines Workouts in einer Transaktion)
 -- steht in supabase/migrations/001_save_workout.sql und wird dort ausgefuehrt.
