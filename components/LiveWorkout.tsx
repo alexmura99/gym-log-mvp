@@ -18,6 +18,8 @@ type LiveWorkoutProps = {
   userId: string;
   exercises: Exercise[];
   suggestedTitle: string;
+  plannedExerciseIds: string[];
+  loading: boolean;
   onSave: (payload: WorkoutSaveInput) => Promise<boolean>;
   onCreateExercise: (payload: {
     name: string;
@@ -30,6 +32,8 @@ export default function LiveWorkout({
   userId,
   exercises,
   suggestedTitle,
+  plannedExerciseIds,
+  loading,
   onSave,
   onCreateExercise,
   getRecommendation,
@@ -38,6 +42,10 @@ export default function LiveWorkout({
   // Ein gespeicherter Entwurf bedeutet: Es läuft noch ein Workout.
   const [isActive, setIsActive] = useState(() => readWorkoutDraft(draftKey) !== null);
   const today = toLocalIsoDate();
+  // Geplante Übungen von heute in Plan-Reihenfolge; unbekannte IDs werden übersprungen.
+  const plannedExercises = plannedExerciseIds
+    .map((id) => exercises.find((exercise) => exercise.id === id))
+    .filter((exercise): exercise is Exercise => Boolean(exercise));
 
   if (!isActive) {
     return (
@@ -55,14 +63,27 @@ export default function LiveWorkout({
         <div className="rounded-3xl bg-zinc-50 p-4 text-sm text-zinc-600">
           <p className="font-semibold text-zinc-900">Vorschlag für heute</p>
           <p>{suggestedTitle || "Freies Workout"}</p>
+          {plannedExercises.length > 0 && (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {plannedExercises.map((exercise) => (
+                <span
+                  key={exercise.id}
+                  className="rounded-full bg-amber-100 px-3 py-1.5 text-xs font-semibold text-amber-900"
+                >
+                  {exercise.name}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
 
         <button
           type="button"
           onClick={() => setIsActive(true)}
-          className="w-full rounded-2xl bg-zinc-950 px-4 py-4 text-base font-semibold text-white"
+          disabled={loading}
+          className="w-full rounded-2xl bg-zinc-950 px-4 py-4 text-base font-semibold text-white disabled:opacity-60"
         >
-          Live-Workout starten
+          {loading ? "Lade Daten..." : "Live-Workout starten"}
         </button>
       </section>
     );
@@ -78,6 +99,7 @@ export default function LiveWorkout({
         saveLabel="Workout beenden und speichern"
         intro="Alles bleibt in einem Workout gebündelt, auch wenn du mehrere Übungen loggst."
         draftKey={draftKey}
+        initialExercises={plannedExercises}
         onSave={async (payload) => {
           const saved = await onSave(payload);
 

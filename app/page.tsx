@@ -546,14 +546,35 @@ export default function Home() {
     }
   }
 
+  function getTodaysPlannedDay() {
+    return plannerDays.find((day) => day.day_of_week === new Date().getDay());
+  }
+
+  // Titelvorschlag im Live-Tab.
   function getTodaysPlanTitle() {
-    const plannedDay = plannerDays.find((day) => day.day_of_week === new Date().getDay());
+    const plannedDay = getTodaysPlannedDay();
 
     if (!plannedDay || plannedDay.is_rest_day) {
       return "Freies Workout";
     }
 
     return plannedDay.title;
+  }
+
+  // Anzeige im Profil: an Ruhetagen "Ruhetag", solange der Plan noch fehlt "–".
+  function getTodaysPlanLabel() {
+    const plannedDay = getTodaysPlannedDay();
+
+    if (!plannedDay) {
+      return "–";
+    }
+
+    return plannedDay.is_rest_day ? "Ruhetag" : plannedDay.title;
+  }
+
+  function getTodaysPlannedExerciseIds() {
+    const plannedDay = getTodaysPlannedDay();
+    return plannedDay && !plannedDay.is_rest_day ? (plannedDay.planned_exercise_ids ?? []) : [];
   }
 
   // force: erzwingt die Abfragen (Button "Erneut versuchen"), auch wenn der Browser "offline"
@@ -653,6 +674,8 @@ export default function Home() {
             userId={user?.id ?? ""}
             exercises={exercises}
             suggestedTitle={getTodaysPlanTitle()}
+            plannedExerciseIds={getTodaysPlannedExerciseIds()}
+            loading={pageLoading}
             onSave={saveWorkout}
             onCreateExercise={createExercise}
             getRecommendation={getLatestPerformance}
@@ -708,7 +731,7 @@ export default function Home() {
               </div>
               <div className="rounded-3xl bg-zinc-50 p-4">
                 <p className="text-xs text-zinc-500">Heute</p>
-                <p className="text-sm font-bold text-zinc-950">{getTodaysPlanTitle()}</p>
+                <p className="text-sm font-bold text-zinc-950">{getTodaysPlanLabel()}</p>
               </div>
             </div>
 

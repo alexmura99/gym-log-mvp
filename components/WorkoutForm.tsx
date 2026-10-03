@@ -26,6 +26,8 @@ type WorkoutFormProps = {
   saveLabel: string;
   intro: string;
   draftKey?: string;
+  // Vorbelegung für ein neues Workout ohne Entwurf (geplante Übungen); wird nur beim Start gelesen.
+  initialExercises?: Exercise[];
   onSave: (payload: WorkoutSaveInput) => Promise<boolean>;
   onCreateExercise: (payload: {
     name: string;
@@ -94,6 +96,7 @@ export default function WorkoutForm({
   saveLabel,
   intro,
   draftKey,
+  initialExercises,
   onSave,
   onCreateExercise,
   getRecommendation,
@@ -117,6 +120,14 @@ export default function WorkoutForm({
 
     if (savedDraft && savedDraft.exercises.length > 0) {
       return savedDraft.exercises;
+    }
+
+    if (!initialWorkout && !savedDraft && initialExercises && initialExercises.length > 0) {
+      return initialExercises.map((exercise) => ({
+        ...createDraftExercise(),
+        exerciseId: exercise.id,
+        exerciseName: exercise.name,
+      }));
     }
 
     return [createDraftExercise()];
