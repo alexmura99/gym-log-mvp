@@ -106,14 +106,14 @@ export default function ExerciseSelect({
               key={exercise.id}
               type="button"
               onClick={() => onSelect(exercise)}
-              className={`rounded-2xl border px-3 py-3 text-left text-sm font-semibold transition ${
+              className={`min-w-0 rounded-2xl border px-3 py-3 text-left text-sm! font-semibold! transition hyphens-auto [overflow-wrap:anywhere] ${
                 isSelected
                   ? "border-amber-400 bg-amber-100 text-zinc-950"
                   : "border-zinc-200 bg-white text-zinc-700"
               }`}
             >
               <span className="block">{exercise.name}</span>
-              <span className="text-xs font-medium text-zinc-500">
+              <span className="block text-xs font-medium text-zinc-500">
                 {exercise.muscle_group}
               </span>
             </button>

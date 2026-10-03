@@ -3,6 +3,7 @@
 import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import AuthForm from "@/components/AuthForm";
+import SafeAreaTop from "@/components/SafeAreaTop";
 import BackfillWorkout from "@/components/BackfillWorkout";
 import LiveWorkout from "@/components/LiveWorkout";
 import WeeklyPlanner from "@/components/WeeklyPlanner";
@@ -728,6 +729,7 @@ export default function Home() {
   if (!authReady) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-[radial-gradient(circle_at_top,#fef3c7,#f8fafc_55%)] pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] text-zinc-950">
+        <SafeAreaTop color="#fef3c7" />
         <p className="text-sm font-semibold text-zinc-600">Lade...</p>
       </main>
     );
@@ -751,6 +753,7 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-[linear-gradient(180deg,#fff7ed_0%,#f8fafc_24%,#eef2ff_100%)] pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] pt-[calc(1.5rem_+_env(safe-area-inset-top))] pb-[calc(7rem_+_env(safe-area-inset-bottom))] text-zinc-950">
+      <SafeAreaTop color="#fff7ed" />
       <div className="mx-auto flex max-w-md flex-col gap-5">
         <header className="space-y-4 rounded-4xl border border-white/80 bg-white/90 p-5 shadow-[0_20px_60px_rgba(15,23,42,0.10)] backdrop-blur">
           <div className="space-y-1">
