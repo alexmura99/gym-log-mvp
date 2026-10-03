@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { MUSCLE_GROUPS } from "@/types/workout";
 import type { Exercise, RecommendationResult } from "@/types/workout";
 
 type ExerciseSelectProps = {
@@ -13,17 +14,6 @@ type ExerciseSelectProps = {
     muscleGroup: string;
   }) => Promise<Exercise | null>;
 };
-
-const MUSCLE_GROUPS = [
-  "Brust",
-  "Rücken",
-  "Schultern",
-  "Beine",
-  "Bizeps",
-  "Trizeps",
-  "Core",
-  "Ganzkörper",
-];
 
 export default function ExerciseSelect({
   exercises,

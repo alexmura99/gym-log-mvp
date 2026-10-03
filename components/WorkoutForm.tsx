@@ -236,6 +236,17 @@ export default function WorkoutForm({
       return;
     }
 
+    // Eine Übung aus dem Entwurf kann inzwischen gelöscht worden sein.
+    if (
+      exercises.length > 0 &&
+      normalizedExercises.some(
+        (exercise) => !exercises.some((known) => known.id === exercise.exerciseId)
+      )
+    ) {
+      alert("Eine gewählte Übung gibt es nicht mehr. Bitte wähle sie neu aus.");
+      return;
+    }
+
     setSaving(true);
 
     try {
@@ -310,7 +321,7 @@ export default function WorkoutForm({
                     Übung {exerciseIndex + 1}
                   </p>
                   <p className="text-lg font-bold text-zinc-900">
-                    {exerciseDraft.exerciseName || "Noch keine Übung gewählt"}
+                    {selectedExercise?.name ?? (exerciseDraft.exerciseName || "Noch keine Übung gewählt")}
                   </p>
                 </div>
 

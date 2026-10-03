@@ -3,6 +3,7 @@
 import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import AuthForm from "@/components/AuthForm";
+import ExerciseManager from "@/components/ExerciseManager";
 import SafeAreaTop from "@/components/SafeAreaTop";
 import BackfillWorkout from "@/components/BackfillWorkout";
 import LiveWorkout from "@/components/LiveWorkout";
@@ -57,6 +58,7 @@ export default function Home() {
   const [plannerDays, setPlannerDays] = useState<PlannerDay[]>([]);
   const [history, setHistory] = useState<Workout[]>([]);
   const [authReady, setAuthReady] = useState(false);
+  const [profileView, setProfileView] = useState<"main" | "exercises">("main");
   const [loadNotice, setLoadNotice] = useState<string | null>(null);
   const [pageLoading, setPageLoading] = useState(false);
   const [savingPlannerDayId, setSavingPlannerDayId] = useState<string | null>(null);
@@ -341,12 +343,33 @@ export default function Home() {
     setExercises([]);
     setPlannerDays([]);
     setLoadNotice(null);
+    setProfileView("main");
     setActiveTab("plan");
     setEditingWorkout(null);
   }
 
+  function normalizeExerciseName(name: string) {
+    return name.trim().replace(/\s+/g, " ").toLowerCase();
+  }
+
+  // Gleicher Name (ohne Groß-/Kleinschreibung und Mehrfach-Leerzeichen) wie eine sichtbare
+  // Übung, Standardübungen eingeschlossen.
+  function findExerciseNameConflict(name: string, ignoreId?: string) {
+    const key = normalizeExerciseName(name);
+    return exercises.find(
+      (exercise) => exercise.id !== ignoreId && normalizeExerciseName(exercise.name) === key
+    );
+  }
+
   async function createExercise(payload: { name: string; muscleGroup: string }) {
     if (!user) {
+      return null;
+    }
+
+    const conflict = findExerciseNameConflict(payload.name);
+
+    if (conflict) {
+      alert(`Eine Übung mit dem Namen „${conflict.name}“ gibt es schon.`);
       return null;
     }
 
@@ -372,6 +395,138 @@ export default function Home() {
     );
     setExercises(nextExercises);
     return created;
+  }
+
+  async function updateExercise(
+    exerciseId: string,
+    payload: { name: string; muscleGroup: string }
+  ) {
+    if (!user) {
+      return false;
+    }
+
+    const conflict = findExerciseNameConflict(payload.name, exerciseId);
+
+    if (conflict) {
+      alert(`Eine Übung mit dem Namen „${conflict.name}“ gibt es schon.`);
+      return false;
+    }
+
+    const { data, error } = await supabase
+      .from("exercises")
+      .update({ name: payload.name.trim(), muscle_group: payload.muscleGroup })
+      .eq("id", exerciseId)
+      .eq("user_id", user.id)
+      .eq("is_public", false)
+      .select("id,user_id,name,muscle_group,is_public,created_at");
+
+    if (error) {
+      alert(describeError(error));
+      return false;
+    }
+
+    const updated = (data?.[0] ?? null) as Exercise | null;
+
+    if (!updated) {
+      alert("Die Übung konnte nicht geändert werden.");
+      return false;
+    }
+
+    setExercises((current) =>
+      current
+        .map((exercise) => (exercise.id === updated.id ? updated : exercise))
+        .sort((left, right) => left.name.localeCompare(right.name))
+    );
+    // Die Historie trägt das Übungs-Objekt mit, ohne neu zu laden den neuen Namen übernehmen.
+    setHistory((current) =>
+      current.map((workout) => ({
+        ...workout,
+        workout_exercises: workout.workout_exercises.map((row) =>
+          row.exercise_id === updated.id ? { ...row, exercise: updated } : row
+        ),
+      }))
+    );
+    return true;
+  }
+
+  async function deleteExercise(exerciseId: string) {
+    if (!user) {
+      return false;
+    }
+
+    // Die Datenbank sperrt das Löschen, solange die Übung in einem Workout vorkommt
+    // (Fremdschlüssel on delete restrict, Fehlercode 23503).
+    const { data, error } = await supabase
+      .from("exercises")
+      .delete()
+      .eq("id", exerciseId)
+      .eq("user_id", user.id)
+      .eq("is_public", false)
+      .select("id");
+
+    if (error) {
+      alert(
+        error.code === "23503"
+          ? "Diese Übung wird in Workouts verwendet und kann nicht gelöscht werden."
+          : describeError(error)
+      );
+      return false;
+    }
+
+    if (!data || data.length === 0) {
+      alert("Die Übung konnte nicht gelöscht werden.");
+      return false;
+    }
+
+    setExercises((current) => current.filter((exercise) => exercise.id !== exerciseId));
+
+    // Erst nach erfolgreichem Löschen aus dem Wochenplan entfernen (ein Upsert, atomar).
+    const affectedDays = plannerDays
+      .filter((day) => (day.planned_exercise_ids ?? []).includes(exerciseId))
+      .map((day) => ({
+        ...day,
+        planned_exercise_ids: day.planned_exercise_ids.filter((id) => id !== exerciseId),
+      }));
+
+    if (affectedDays.length > 0) {
+      setPlannerDays((current) =>
+        current.map((day) => affectedDays.find((row) => row.id === day.id) ?? day)
+      );
+
+      const { error: planError } = await supabase.from("weekly_plan_days").upsert(
+        affectedDays.map((day) => ({
+          id: day.id,
+          user_id: day.user_id,
+          day_of_week: day.day_of_week,
+          title: day.title,
+          is_rest_day: day.is_rest_day,
+          position: day.position,
+          notes: day.notes,
+          planned_exercise_ids: day.planned_exercise_ids,
+        }))
+      );
+
+      if (planError) {
+        alert(
+          "Die Übung wurde gelöscht, konnte aber nicht aus dem Wochenplan entfernt werden. " +
+            "Das ist unsichtbar und harmlos, ein erneutes Speichern des Tages räumt es auf."
+        );
+      }
+    }
+
+    return true;
+  }
+
+  // Anzahl der Workouts je Übung (ein Workout zählt einmal, auch bei mehreren Blöcken).
+  function getExerciseUsage() {
+    const usage = new Map<string, number>();
+
+    for (const workout of history) {
+      const seen = new Set(workout.workout_exercises.map((row) => row.exercise_id));
+      seen.forEach((exerciseId) => usage.set(exerciseId, (usage.get(exerciseId) ?? 0) + 1));
+    }
+
+    return usage;
   }
 
   function getLatestPerformance(exerciseId: string) {
@@ -656,6 +811,10 @@ export default function Home() {
   }, []);
 
   function renderActiveTab() {
+    const ownExerciseCount = exercises.filter(
+      (exercise) => !exercise.is_public && exercise.user_id === user?.id
+    ).length;
+
     switch (activeTab) {
       case "plan":
         return (
@@ -704,6 +863,21 @@ export default function Home() {
           />
         );
       case "profile":
+        if (profileView === "exercises") {
+          return (
+            <ExerciseManager
+              exercises={exercises}
+              currentUserId={user?.id ?? ""}
+              usage={getExerciseUsage()}
+              findNameConflict={findExerciseNameConflict}
+              onCreate={createExercise}
+              onUpdate={updateExercise}
+              onDelete={deleteExercise}
+              onBack={() => setProfileView("main")}
+            />
+          );
+        }
+
         return (
           <section className="space-y-4 rounded-4xl border border-white/80 bg-white p-5 shadow-[0_18px_60px_rgba(15,23,42,0.08)]">
             <div className="space-y-1">
@@ -734,6 +908,22 @@ export default function Home() {
                 <p className="text-sm font-bold text-zinc-950">{getTodaysPlanLabel()}</p>
               </div>
             </div>
+
+            <button
+              type="button"
+              onClick={() => setProfileView("exercises")}
+              className="flex w-full items-center justify-between gap-3 rounded-3xl bg-zinc-50 p-4 text-left"
+            >
+              <span>
+                <span className="block text-sm font-bold text-zinc-950">Übungen verwalten</span>
+                <span className="block text-xs text-zinc-500">
+                  {ownExerciseCount === 1 ? "1 eigene Übung" : `${ownExerciseCount} eigene Übungen`}
+                </span>
+              </span>
+              <span aria-hidden="true" className="text-xl text-zinc-400">
+                ›
+              </span>
+            </button>
 
             <button
               type="button"
@@ -825,7 +1015,10 @@ export default function Home() {
               <button
                 key={tab.id}
                 type="button"
-                onClick={() => setActiveTab(tab.id)}
+                onClick={() => {
+                  setActiveTab(tab.id);
+                  setProfileView("main");
+                }}
                 className={`min-w-0 truncate rounded-2xl px-0.5 py-3 text-[0.6875rem]! font-semibold! transition ${
                   isActive ? "bg-zinc-950 text-white" : "bg-zinc-100 text-zinc-600"
                 }`}

@@ -16,6 +16,17 @@ export const APP_TABS = [
   { id: "profile", label: "Profil" },
 ] as const;
 
+export const MUSCLE_GROUPS = [
+  "Brust",
+  "Rücken",
+  "Schultern",
+  "Beine",
+  "Bizeps",
+  "Trizeps",
+  "Core",
+  "Ganzkörper",
+] as const;
+
 export type AppTab = (typeof APP_TABS)[number]["id"];
 
 export type Exercise = {
