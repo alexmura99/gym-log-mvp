@@ -73,6 +73,18 @@ export default function WeeklyPlanner({
     });
   }
 
+  // Tauscht den Inhalt mit dem Nachbartag (Tage sind nach Wochentag sortiert).
+  function moveByButton(index: number, direction: -1 | 1) {
+    const neighbor = days[index + direction];
+
+    if (!neighbor) {
+      return;
+    }
+
+    setEditingId(null);
+    void onMoveDay(days[index].id, neighbor.id);
+  }
+
   async function submitDay(dayId: string) {
     await onSaveDay(dayId, {
       title: draft.isRestDay ? "Ruhetag" : draft.title.trim() || "Training",
@@ -92,8 +104,8 @@ export default function WeeklyPlanner({
         </p>
         <h2 className="text-2xl font-black text-zinc-950">Wochenplanung</h2>
         <p className="text-sm text-zinc-500">
-          Montag bis Sonntag. Trainingstage lassen sich bearbeiten, löschen und per Drag-and-Drop
-          oder Touch verschieben.
+          Montag bis Sonntag. Trainingstage lassen sich bearbeiten, löschen und tauschen: mit den
+          Pfeilen mit dem Nachbartag, am Rechner auch per Drag-and-Drop mit einem beliebigen Tag.
         </p>
       </div>
 
@@ -110,19 +122,13 @@ export default function WeeklyPlanner({
           return (
             <article
               key={day.id}
-              draggable
+              draggable={!isEditing}
               onDragStart={() => setDraggedId(day.id)}
+              onDragEnd={() => setDraggedId(null)}
               onDragOver={(event) => event.preventDefault()}
               onDrop={() => {
                 if (draggedId && draggedId !== day.id) {
-                  void onMoveDay(draggedId, day.id);
-                }
-
-                setDraggedId(null);
-              }}
-              onTouchStart={() => setDraggedId(day.id)}
-              onTouchEnd={() => {
-                if (draggedId && draggedId !== day.id) {
+                  setEditingId(null);
                   void onMoveDay(draggedId, day.id);
                 }
 
@@ -147,13 +153,33 @@ export default function WeeklyPlanner({
                   )}
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => startEditing(day)}
-                  className="rounded-full bg-white px-3 py-2 text-xs font-semibold text-zinc-900"
-                >
-                  Bearbeiten
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    aria-label={`${weekdayLabel} eine Position nach oben tauschen`}
+                    disabled={index === 0}
+                    onClick={() => moveByButton(index, -1)}
+                    className="rounded-full bg-white px-3 py-2 text-xs font-semibold text-zinc-900 disabled:opacity-30"
+                  >
+                    ▲
+                  </button>
+                  <button
+                    type="button"
+                    aria-label={`${weekdayLabel} eine Position nach unten tauschen`}
+                    disabled={index === days.length - 1}
+                    onClick={() => moveByButton(index, 1)}
+                    className="rounded-full bg-white px-3 py-2 text-xs font-semibold text-zinc-900 disabled:opacity-30"
+                  >
+                    ▼
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => startEditing(day)}
+                    className="rounded-full bg-white px-3 py-2 text-xs font-semibold text-zinc-900"
+                  >
+                    Bearbeiten
+                  </button>
+                </div>
               </div>
 
               {!isEditing && (

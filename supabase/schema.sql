@@ -83,21 +83,6 @@ create table if not exists public.workout_versions (
 alter table public.weekly_plan_days
   add column if not exists planned_exercise_ids uuid[] not null default '{}';
 
--- Dedupliziert Alt-Daten, damit ein eindeutiger Wochentag pro Nutzer garantiert werden kann.
-with ranked_days as (
-  select
-    id,
-    row_number() over (
-      partition by user_id, day_of_week
-      order by created_at asc, id asc
-    ) as rn
-  from public.weekly_plan_days
-)
-delete from public.weekly_plan_days
-where id in (
-  select id from ranked_days where rn > 1
-);
-
 create index if not exists exercises_user_id_idx on public.exercises (user_id);
 create index if not exists exercises_public_idx on public.exercises (is_public);
 create unique index if not exists exercises_public_name_unique on public.exercises (lower(btrim(name))) where is_public;

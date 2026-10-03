@@ -61,6 +61,7 @@ export default function Home() {
   const [savingPlannerDayId, setSavingPlannerDayId] = useState<string | null>(null);
   const [editingWorkout, setEditingWorkout] = useState<Workout | null>(null);
   const loadedUserIdRef = useRef<string | null>(null);
+  const isMovingPlannerDayRef = useRef(false);
 
   // Ein gemeinsamer Hinweis in der Seite statt eines Alerts pro Abfrage.
   function reportLoadError(error: { message: string }) {
@@ -487,35 +488,43 @@ export default function Home() {
     });
   }
 
+  // Tauscht nur den Inhalt (Titel, Ruhetag, Notizen, geplante Übungen) zweier Tage. Jede Zeile
+  // behält ihren Wochentag und ihre Position, so bleibt der Unique-Index
+  // (user_id, day_of_week) unberührt.
   async function movePlannerDay(fromId: string, toId: string) {
-    if (!user) {
+    if (!user || isMovingPlannerDayRef.current) {
       return;
     }
 
     const currentDays = sortPlannerDays(plannerDays);
-    const fromIndex = currentDays.findIndex((day) => day.id === fromId);
-    const toIndex = currentDays.findIndex((day) => day.id === toId);
+    const first = currentDays.find((day) => day.id === fromId);
+    const second = currentDays.find((day) => day.id === toId);
 
-    if (fromIndex === -1 || toIndex === -1) {
+    if (!first || !second || first.id === second.id) {
       return;
     }
 
-    const nextDays = [...currentDays];
-    const [movedDay] = nextDays.splice(fromIndex, 1);
-    nextDays.splice(toIndex, 0, movedDay);
+    const contentOf = (day: PlannerDay) => ({
+      title: day.title,
+      is_rest_day: day.is_rest_day,
+      notes: day.notes,
+      planned_exercise_ids: day.planned_exercise_ids,
+    });
 
-    const payload = nextDays.map((day, index) => ({
-      ...day,
-      day_of_week: WEEKDAY_OPTIONS[index].key,
-      position: index,
-    }));
+    const changedRows = [
+      { ...first, ...contentOf(second) },
+      { ...second, ...contentOf(first) },
+    ];
 
-    setPlannerDays(payload);
+    setPlannerDays(
+      currentDays.map((day) => changedRows.find((row) => row.id === day.id) ?? day)
+    );
 
-    const { error } = await supabase
-      .from("weekly_plan_days")
-      .upsert(
-        payload.map((day) => ({
+    isMovingPlannerDayRef.current = true;
+
+    try {
+      const { error } = await supabase.from("weekly_plan_days").upsert(
+        changedRows.map((day) => ({
           id: day.id,
           user_id: day.user_id,
           day_of_week: day.day_of_week,
@@ -527,9 +536,12 @@ export default function Home() {
         }))
       );
 
-    if (error) {
-      alert(describeError(error));
-      await loadPlanner(user.id);
+      if (error) {
+        alert(describeError(error));
+        await loadPlanner(user.id);
+      }
+    } finally {
+      isMovingPlannerDayRef.current = false;
     }
   }
 
