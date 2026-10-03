@@ -7,6 +7,12 @@ import BackfillWorkout from "@/components/BackfillWorkout";
 import LiveWorkout from "@/components/LiveWorkout";
 import WeeklyPlanner from "@/components/WeeklyPlanner";
 import WorkoutHistory from "@/components/WorkoutHistory";
+import {
+  OFFLINE_TEXT_AUTH,
+  OFFLINE_TEXT_LOAD,
+  OFFLINE_TEXT_SAVE_WORKOUT,
+  describeError,
+} from "@/lib/errors";
 import { getWorkoutRecommendation } from "@/lib/recommendations";
 import { APP_TABS, WEEKDAY_OPTIONS } from "@/types/workout";
 import type { User } from "@supabase/supabase-js";
@@ -52,14 +58,30 @@ export default function Home() {
   const [plannerDays, setPlannerDays] = useState<PlannerDay[]>([]);
   const [history, setHistory] = useState<Workout[]>([]);
   const [authReady, setAuthReady] = useState(false);
+  const [loadNotice, setLoadNotice] = useState<string | null>(null);
   const [pageLoading, setPageLoading] = useState(false);
   const [savingPlannerDayId, setSavingPlannerDayId] = useState<string | null>(null);
   const [editingWorkout, setEditingWorkout] = useState<Workout | null>(null);
   const loadedUserIdRef = useRef<string | null>(null);
 
+  // Ein gemeinsamer Hinweis in der Seite statt eines Alerts pro Abfrage.
+  function reportLoadError(error: { message: string }) {
+    setLoadNotice(describeError(error, OFFLINE_TEXT_LOAD));
+  }
+
   // Meldet true, wenn Übungen, Plan und Historie vollständig geladen wurden.
-  async function loadDashboard(userId: string): Promise<boolean> {
+  async function loadDashboard(
+    userId: string,
+    options: { skipOnlineCheck?: boolean } = {}
+  ): Promise<boolean> {
+    // Ohne Netz sofort melden, statt auf die Wiederholungen der Bibliothek (ca. 7 s) zu warten.
+    if (!options.skipOnlineCheck && navigator.onLine === false) {
+      setLoadNotice(OFFLINE_TEXT_LOAD);
+      return false;
+    }
+
     setPageLoading(true);
+    setLoadNotice(null);
 
     try {
       const loadedExercises = await loadExercises(userId);
@@ -75,6 +97,7 @@ export default function Home() {
       return results.every(Boolean);
     } catch (error) {
       console.error(error);
+      reportLoadError(error instanceof Error ? error : { message: "Unbekannter Fehler" });
       return false;
     } finally {
       setPageLoading(false);
@@ -89,7 +112,7 @@ export default function Home() {
       .order("name", { ascending: true });
 
     if (error) {
-      alert(error.message);
+      reportLoadError(error);
       return null;
     }
 
@@ -106,7 +129,7 @@ export default function Home() {
       .order("position", { ascending: true });
 
     if (error) {
-      alert(error.message);
+      reportLoadError(error);
       return false;
     }
 
@@ -203,7 +226,7 @@ export default function Home() {
       .order("date", { ascending: false });
 
     if (workoutsError) {
-      alert(workoutsError.message);
+      reportLoadError(workoutsError);
       return false;
     }
 
@@ -213,7 +236,7 @@ export default function Home() {
       .eq("user_id", userId);
 
     if (workoutExercisesError) {
-      alert(workoutExercisesError.message);
+      reportLoadError(workoutExercisesError);
       return false;
     }
 
@@ -224,7 +247,7 @@ export default function Home() {
       .order("set_number", { ascending: true });
 
     if (setsError) {
-      alert(setsError.message);
+      reportLoadError(setsError);
       return false;
     }
 
@@ -268,7 +291,7 @@ export default function Home() {
       });
 
       if (error) {
-        alert(error.message);
+        alert(describeError(error, OFFLINE_TEXT_AUTH));
         return;
       }
 
@@ -288,7 +311,7 @@ export default function Home() {
       });
 
       if (error) {
-        alert(error.message);
+        alert(describeError(error, OFFLINE_TEXT_AUTH));
       }
     } finally {
       setAuthLoading(false);
@@ -300,6 +323,7 @@ export default function Home() {
     setHistory([]);
     setExercises([]);
     setPlannerDays([]);
+    setLoadNotice(null);
     setActiveTab("plan");
     setEditingWorkout(null);
   }
@@ -321,7 +345,7 @@ export default function Home() {
       .single();
 
     if (error) {
-      alert(error.message);
+      alert(describeError(error));
       return null;
     }
 
@@ -446,7 +470,7 @@ export default function Home() {
         .eq("user_id", user.id);
 
       if (updateError) {
-        alert(updateError.message);
+        alert(describeError(updateError, OFFLINE_TEXT_SAVE_WORKOUT));
         return false;
       }
 
@@ -457,7 +481,7 @@ export default function Home() {
         .eq("user_id", user.id);
 
       if (deleteSetsError) {
-        alert(deleteSetsError.message);
+        alert(describeError(deleteSetsError, OFFLINE_TEXT_SAVE_WORKOUT));
         return false;
       }
 
@@ -468,7 +492,7 @@ export default function Home() {
         .eq("user_id", user.id);
 
       if (deleteWorkoutExercisesError) {
-        alert(deleteWorkoutExercisesError.message);
+        alert(describeError(deleteWorkoutExercisesError, OFFLINE_TEXT_SAVE_WORKOUT));
         return false;
       }
     } else {
@@ -484,7 +508,7 @@ export default function Home() {
         .single();
 
       if (error) {
-        alert(error.message);
+        alert(describeError(error, OFFLINE_TEXT_SAVE_WORKOUT));
         return false;
       }
 
@@ -505,7 +529,7 @@ export default function Home() {
       .select("id,exercise_id");
 
     if (workoutExercisesError) {
-      alert(workoutExercisesError.message);
+      alert(describeError(workoutExercisesError, OFFLINE_TEXT_SAVE_WORKOUT));
       return false;
     }
 
@@ -528,7 +552,7 @@ export default function Home() {
     const { error: setsError } = await supabase.from("sets").insert(setRows);
 
     if (setsError) {
-      alert(setsError.message);
+      alert(describeError(setsError, OFFLINE_TEXT_SAVE_WORKOUT));
       return false;
     }
 
@@ -551,7 +575,7 @@ export default function Home() {
       .eq("user_id", user.id);
 
     if (deleteSetsError) {
-      alert(deleteSetsError.message);
+      alert(describeError(deleteSetsError));
       return;
     }
 
@@ -562,7 +586,7 @@ export default function Home() {
       .eq("user_id", user.id);
 
     if (deleteWorkoutExercisesError) {
-      alert(deleteWorkoutExercisesError.message);
+      alert(describeError(deleteWorkoutExercisesError));
       return;
     }
 
@@ -573,7 +597,7 @@ export default function Home() {
       .eq("user_id", user.id);
 
     if (deleteWorkoutError) {
-      alert(deleteWorkoutError.message);
+      alert(describeError(deleteWorkoutError));
       return;
     }
 
@@ -596,7 +620,7 @@ export default function Home() {
         .eq("user_id", user.id);
 
       if (error) {
-        alert(error.message);
+        alert(describeError(error));
         return;
       }
 
@@ -658,7 +682,7 @@ export default function Home() {
       );
 
     if (error) {
-      alert(error.message);
+      alert(describeError(error));
       await loadPlanner(user.id);
     }
   }
@@ -673,31 +697,52 @@ export default function Home() {
     return plannedDay.title;
   }
 
+  // force: erzwingt die Abfragen (Button "Erneut versuchen"), auch wenn der Browser "offline"
+  // meldet oder das Dashboard schon als geladen gilt.
+  async function ensureDashboardLoaded(userId: string, options: { force?: boolean } = {}) {
+    // Token-Refresh und Tab-Rückkehr melden denselben Nutzer erneut: dann nicht neu laden.
+    if (!options.force && loadedUserIdRef.current === userId) {
+      return;
+    }
+
+    loadedUserIdRef.current = userId;
+    const loaded = await loadDashboard(userId, { skipOnlineCheck: options.force });
+
+    // Nur ein erfolgreiches Laden merken, sonst versucht es der nächste Anlass erneut.
+    if (!loaded && loadedUserIdRef.current === userId) {
+      loadedUserIdRef.current = null;
+    }
+  }
+
   const syncDashboard = useEffectEvent(async (nextUser: User | null) => {
     if (nextUser) {
-      // Token-Refresh und Tab-Rückkehr melden denselben Nutzer erneut: dann nicht neu laden.
-      if (loadedUserIdRef.current === nextUser.id) {
-        return;
-      }
-
-      loadedUserIdRef.current = nextUser.id;
-      const loaded = await loadDashboard(nextUser.id);
-
-      // Nur ein erfolgreiches Laden merken, sonst versucht es der nächste Anlass erneut.
-      if (!loaded && loadedUserIdRef.current === nextUser.id) {
-        loadedUserIdRef.current = null;
-      }
-
+      await ensureDashboardLoaded(nextUser.id);
       return;
     }
 
     loadedUserIdRef.current = null;
+    setLoadNotice(null);
     setExercises([]);
     setPlannerDays([]);
     setHistory([]);
     setEditingWorkout(null);
     setActiveTab("plan");
   });
+
+  useEffect(() => {
+    if (!user) {
+      return;
+    }
+
+    const currentUser = user;
+
+    function handleOnline() {
+      void syncDashboard(currentUser);
+    }
+
+    window.addEventListener("online", handleOnline);
+    return () => window.removeEventListener("online", handleOnline);
+  }, [user]);
 
   useEffect(() => {
     let isMounted = true;
@@ -869,6 +914,20 @@ export default function Home() {
             </p>
           </div>
         </header>
+
+        {loadNotice && (
+          <div className="flex items-center justify-between gap-3 rounded-3xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+            <p>{loadNotice}</p>
+            <button
+              type="button"
+              onClick={() => void ensureDashboardLoaded(user.id, { force: true })}
+              disabled={pageLoading}
+              className="shrink-0 rounded-full bg-white px-3 py-2 text-xs font-semibold text-zinc-900 disabled:opacity-60"
+            >
+              Erneut versuchen
+            </button>
+          </div>
+        )}
 
         {renderActiveTab()}
       </div>
