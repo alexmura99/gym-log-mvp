@@ -26,8 +26,8 @@ export default function AuthForm({
   const isLogin = authMode === "login";
 
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_top,#fef3c7,#f8fafc_55%)] px-4 py-8 text-zinc-950">
-      <div className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-md flex-col justify-center gap-6">
+    <main className="min-h-screen bg-[radial-gradient(circle_at_top,#fef3c7,#f8fafc_55%)] pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] pt-[calc(2rem_+_env(safe-area-inset-top))] pb-[calc(2rem_+_env(safe-area-inset-bottom))] text-zinc-950">
+      <div className="mx-auto flex min-h-[calc(100vh_-_4rem_-_env(safe-area-inset-top)_-_env(safe-area-inset-bottom))] max-w-md flex-col justify-center gap-6">
         <div className="space-y-3 text-center">
           <p className="text-sm font-semibold uppercase tracking-[0.25em] text-amber-700">
             Strength Planner

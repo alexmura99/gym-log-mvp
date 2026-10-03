@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -15,6 +15,21 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Gym Log",
   description: "Mobiler Trainingsplaner und Workout-Logger für Krafttraining.",
+  // Start vom iPhone-Home-Bildschirm im Vollbildmodus (ohne Browserleisten).
+  appleWebApp: {
+    capable: true,
+    title: "Gym Log",
+    statusBarStyle: "default",
+  },
+  other: {
+    "apple-mobile-web-app-capable": "yes",
+  },
+};
+
+// viewport-fit=cover: Inhalt reicht bis unter Statusleiste und Home-Balken; die
+// safe-area-Abstände (env(safe-area-inset-*)) halten ihn davon fern.
+export const viewport: Viewport = {
+  viewportFit: "cover",
 };
 
 export default function RootLayout({

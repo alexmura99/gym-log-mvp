@@ -29,3 +29,12 @@ export function formatDateGerman(isoDate: string) {
     year: "numeric",
   }).format(parseIsoDate(isoDate));
 }
+
+// z. B. "Sa., 03.10." (ohne Jahr, für enge Stellen)
+export function formatDateGermanShort(isoDate: string) {
+  return new Intl.DateTimeFormat("de-DE", {
+    weekday: "short",
+    day: "2-digit",
+    month: "2-digit",
+  }).format(parseIsoDate(isoDate));
+}

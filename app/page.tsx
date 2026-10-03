@@ -13,7 +13,7 @@ import {
   OFFLINE_TEXT_SAVE_WORKOUT,
   describeError,
 } from "@/lib/errors";
-import { formatDateGerman, toLocalIsoDate } from "@/lib/dates";
+import { formatDateGermanShort, toLocalIsoDate } from "@/lib/dates";
 import { fetchAll } from "@/lib/fetchAll";
 import { getWorkoutRecommendation } from "@/lib/recommendations";
 import { APP_TABS, WEEKDAY_OPTIONS } from "@/types/workout";
@@ -727,7 +727,7 @@ export default function Home() {
 
   if (!authReady) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-[radial-gradient(circle_at_top,#fef3c7,#f8fafc_55%)] px-4 text-zinc-950">
+      <main className="flex min-h-screen items-center justify-center bg-[radial-gradient(circle_at_top,#fef3c7,#f8fafc_55%)] pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] text-zinc-950">
         <p className="text-sm font-semibold text-zinc-600">Lade...</p>
       </main>
     );
@@ -750,19 +750,19 @@ export default function Home() {
   }
 
   return (
-    <main className="min-h-screen bg-[linear-gradient(180deg,#fff7ed_0%,#f8fafc_24%,#eef2ff_100%)] px-4 pb-28 pt-6 text-zinc-950">
+    <main className="min-h-screen bg-[linear-gradient(180deg,#fff7ed_0%,#f8fafc_24%,#eef2ff_100%)] pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] pt-[calc(1.5rem_+_env(safe-area-inset-top))] pb-[calc(7rem_+_env(safe-area-inset-bottom))] text-zinc-950">
       <div className="mx-auto flex max-w-md flex-col gap-5">
         <header className="space-y-4 rounded-4xl border border-white/80 bg-white/90 p-5 shadow-[0_20px_60px_rgba(15,23,42,0.10)] backdrop-blur">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-amber-700">
-                Personal Strength Log
-              </p>
-              <h1 className="text-3xl font-black tracking-tight">Gym Log</h1>
+          <div className="space-y-1">
+            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-amber-700">
+              Personal Strength Log
+            </p>
+            <div className="flex items-center justify-between gap-3">
+              <h1 className="min-w-0 text-3xl font-black tracking-tight">Gym Log</h1>
+              <span className="shrink-0 whitespace-nowrap rounded-full bg-amber-100 px-3 py-2 text-xs font-semibold text-amber-900">
+                {pageLoading ? "Sync..." : formatDateGermanShort(toLocalIsoDate())}
+              </span>
             </div>
-            <span className="rounded-full bg-amber-100 px-3 py-2 text-xs font-semibold text-amber-900">
-              {pageLoading ? "Sync..." : formatDateGerman(toLocalIsoDate())}
-            </span>
           </div>
 
           <div className="rounded-3xl bg-zinc-50 p-4">
@@ -790,8 +790,8 @@ export default function Home() {
         {renderActiveTab()}
       </div>
 
-      <nav className="fixed bottom-0 left-0 right-0 border-t border-zinc-200 bg-white/95 px-3 py-3 backdrop-blur">
-        <div className="mx-auto grid max-w-md grid-cols-5 gap-2">
+      <nav className="fixed bottom-0 left-0 right-0 border-t border-zinc-200 bg-white/95 pl-[max(0.5rem,env(safe-area-inset-left))] pr-[max(0.5rem,env(safe-area-inset-right))] pt-3 pb-[calc(0.75rem_+_env(safe-area-inset-bottom))] backdrop-blur">
+        <div className="mx-auto grid max-w-md grid-cols-5 gap-1">
           {APP_TABS.map((tab) => {
             const isActive = tab.id === activeTab;
 
@@ -800,7 +800,7 @@ export default function Home() {
                 key={tab.id}
                 type="button"
                 onClick={() => setActiveTab(tab.id)}
-                className={`rounded-2xl px-2 py-3 text-xs font-semibold transition ${
+                className={`min-w-0 truncate rounded-2xl px-0.5 py-3 text-[0.6875rem]! font-semibold! transition ${
                   isActive ? "bg-zinc-950 text-white" : "bg-zinc-100 text-zinc-600"
                 }`}
               >

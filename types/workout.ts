@@ -11,7 +11,7 @@ export const WEEKDAY_OPTIONS = [
 export const APP_TABS = [
   { id: "plan", label: "Plan" },
   { id: "live", label: "Live" },
-  { id: "backfill", label: "Nachtragen" },
+  { id: "backfill", label: "Nachtrag" },
   { id: "history", label: "Historie" },
   { id: "profile", label: "Profil" },
 ] as const;

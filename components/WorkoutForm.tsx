@@ -260,7 +260,7 @@ export default function WorkoutForm({
         <p className="text-sm text-zinc-500">{intro}</p>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <input
           className="w-full rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-4 text-base"
           type="date"
