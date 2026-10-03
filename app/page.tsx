@@ -24,6 +24,7 @@ import type {
   AppTab,
   Exercise,
   PlannerDay,
+  RecommendationSet,
   Workout,
   WorkoutExercise,
   WorkoutSaveInput,
@@ -529,25 +530,32 @@ export default function Home() {
     return usage;
   }
 
+  // Die Historie ist nach Datum absteigend sortiert: die ersten zwei Einheiten mit Sätzen
+  // dieser Übung sind die letzten beiden (alle Blöcke der Übung in einem Workout zählen zusammen).
   function getLatestPerformance(exerciseId: string) {
-    for (const workout of history) {
-      const match = workout.workout_exercises.find(
-        (exercise) => exercise.exercise_id === exerciseId && exercise.sets.length > 0
-      );
+    const sessions: RecommendationSet[][] = [];
+    let lastSessionDate: string | null = null;
 
-      if (match?.exercise) {
-        return getWorkoutRecommendation({
-          exerciseName: match.exercise.name,
-          latestPerformance: match.sets.map((set) => ({
-            weight: set.weight,
-            reps: set.reps,
-            rpe: set.rpe,
-          })),
-        });
+    for (const workout of history) {
+      const sets = workout.workout_exercises
+        .filter((row) => row.exercise_id === exerciseId)
+        .flatMap((row) => row.sets)
+        .map((set) => ({ weight: set.weight, reps: set.reps, rpe: set.rpe }));
+
+      if (sets.length > 0) {
+        if (sessions.length === 0) {
+          lastSessionDate = workout.date;
+        }
+
+        sessions.push(sets);
+      }
+
+      if (sessions.length === 2) {
+        break;
       }
     }
 
-    return null;
+    return getWorkoutRecommendation({ sessions, lastSessionDate });
   }
 
   async function saveWorkout(payload: WorkoutSaveInput): Promise<boolean> {

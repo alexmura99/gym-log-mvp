@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { formatDateGermanShort } from "@/lib/dates";
 import { MUSCLE_GROUPS } from "@/types/workout";
 import type { Exercise, RecommendationResult } from "@/types/workout";
 
@@ -146,7 +147,32 @@ export default function ExerciseSelect({
                 : "bg-amber-100 text-amber-900"
           }`}
         >
-          <p className="font-semibold">{recommendation.summary}</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.12em]">
+            Letzte Einheit
+            {recommendation.lastSession.date
+              ? ` · ${formatDateGermanShort(recommendation.lastSession.date)}`
+              : ""}
+          </p>
+          <ul className="mt-2 space-y-1.5">
+            {recommendation.lastSession.groups.map((group) => (
+              <li
+                key={group.weightLabel}
+                className={`flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 rounded-xl px-3 py-2 ${
+                  group.isWorking ? "bg-white/70" : "bg-white/30 opacity-80"
+                }`}
+              >
+                <span className="font-semibold">
+                  {group.weightLabel}: {group.repsLabel}
+                </span>
+                <span className="text-xs font-semibold">
+                  {group.isWorking
+                    ? `Arbeitssätze · ${group.rpeLabel ?? "RPE –"}`
+                    : "Leichtere Sätze · zählen nicht"}
+                </span>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-3 text-base font-black">Ziel: {recommendation.targetLabel}</p>
           <p className="mt-1">{recommendation.suggestion}</p>
         </div>
       )}

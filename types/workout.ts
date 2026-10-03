@@ -106,18 +106,34 @@ export type WorkoutSaveInput = {
   exercises: WorkoutDraftExercise[];
 };
 
+export type RecommendationSet = {
+  weight: number;
+  reps: number;
+  rpe: number | null;
+};
+
 export type RecommendationInput = {
-  exerciseName: string;
-  latestPerformance: Array<{
-    weight: number;
-    reps: number;
-    rpe: number | null;
-  }>;
+  // Die letzten Einheiten dieser Übung (alle Sätze einer Einheit), die neueste zuerst.
+  sessions: RecommendationSet[][];
+  // Datum (YYYY-MM-DD) der neuesten Einheit, nur für die Anzeige.
+  lastSessionDate?: string | null;
+};
+
+// Eine Zeile der Anzeige "Letzte Einheit": alle Sätze mit demselben Gewicht.
+export type LastSessionGroup = {
+  weightLabel: string; // "50 kg" oder "Eigengewicht"
+  repsLabel: string; // "10, 7 Wdh."
+  isWorking: boolean; // Arbeitssätze (schwerstes Gewicht) zählen für die Empfehlung
+  rpeLabel: string | null; // nur bei Arbeitssätzen: "RPE 8", "RPE Ø 8,5" oder null
 };
 
 export type RecommendationResult = {
-  summary: string;
+  lastSession: { date: string | null; groups: LastSessionGroup[] };
   suggestion: string;
-  deltaKg: number;
   trend: "increase" | "hold" | "decrease";
+  targetWeight: number;
+  targetReps: number;
+  targetSets: number;
+  // Fertiger Text, z. B. "62,5 kg · 3 × 8"
+  targetLabel: string;
 };

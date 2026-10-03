@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import ExerciseSelect from "@/components/ExerciseSelect";
+import FieldHelp from "@/components/FieldHelp";
 import { toLocalIsoDate } from "@/lib/dates";
 import {
   clearWorkoutDraft,
@@ -35,6 +36,24 @@ type WorkoutFormProps = {
   }) => Promise<Exercise | null>;
   getRecommendation: (exerciseId: string) => RecommendationResult | null;
 };
+
+const RPE_BUTTONS = [
+  { value: 6, hint: "4+ übrig", label: "vier oder mehr Wiederholungen übrig" },
+  { value: 7, hint: "3 übrig", label: "drei Wiederholungen übrig" },
+  { value: 8, hint: "2 übrig", label: "zwei Wiederholungen übrig" },
+  { value: 9, hint: "1 übrig", label: "eine Wiederholung übrig" },
+  { value: 10, hint: "Limit", label: "keine Wiederholung mehr möglich" },
+];
+
+// "8.5" -> "8,5" (alte Werte aus früheren Workouts können Halbschritte oder Ausreißer sein)
+function formatRpe(value: string) {
+  const number = Number(value);
+  return Number.isFinite(number) ? String(number).replace(".", ",") : value;
+}
+
+function weightInput(weight: number) {
+  return String(Math.round(weight * 100) / 100);
+}
 
 function createDraftSet(): WorkoutDraftSet {
   return {
@@ -123,11 +142,20 @@ export default function WorkoutForm({
     }
 
     if (!initialWorkout && !savedDraft && initialExercises && initialExercises.length > 0) {
-      return initialExercises.map((exercise) => ({
-        ...createDraftExercise(),
-        exerciseId: exercise.id,
-        exerciseName: exercise.name,
-      }));
+      return initialExercises.map((exercise) => {
+        const draft = createDraftExercise();
+        const recommendation = mode === "live" ? getRecommendation(exercise.id) : null;
+
+        return {
+          ...draft,
+          exerciseId: exercise.id,
+          exerciseName: exercise.name,
+          // Empfohlenes Gewicht im ersten Satz vorbelegen, die Wiederholungen bleiben leer.
+          sets: recommendation
+            ? [{ ...draft.sets[0], weight: weightInput(recommendation.targetWeight) }]
+            : draft.sets,
+        };
+      });
     }
 
     return [createDraftExercise()];
@@ -138,6 +166,7 @@ export default function WorkoutForm({
     () => initialWorkout?.id ?? savedDraft?.workoutId ?? crypto.randomUUID()
   );
   const [saving, setSaving] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
   const persistDraft = useRef(true);
 
   useEffect(() => {
@@ -168,13 +197,50 @@ export default function WorkoutForm({
     );
   }
 
+  // Der neue Satz übernimmt das Gewicht des vorigen Satzes (Wiederholungen und RPE bleiben leer).
   function addSet(exerciseId: string) {
     setExerciseDrafts((current) =>
-      current.map((exercise) =>
-        exercise.id === exerciseId
-          ? { ...exercise, sets: [...exercise.sets, createDraftSet()] }
-          : exercise
-      )
+      current.map((exercise) => {
+        if (exercise.id !== exerciseId) {
+          return exercise;
+        }
+
+        const lastWeight = exercise.sets[exercise.sets.length - 1]?.weight ?? "";
+        return {
+          ...exercise,
+          sets: [...exercise.sets, { ...createDraftSet(), weight: lastWeight }],
+        };
+      })
+    );
+  }
+
+  // Im Live-Workout kommt das empfohlene Gewicht in den ersten Satz, sofern dort noch nichts
+  // eingetippt wurde. Ein Gewicht, das nur von der Empfehlung der vorigen Übung stammt, wird ersetzt.
+  function selectExercise(blockId: string, exercise: Exercise) {
+    setExerciseDrafts((current) =>
+      current.map((block) => {
+        if (block.id !== blockId) {
+          return block;
+        }
+
+        let sets = block.sets;
+
+        if (mode === "live") {
+          const previous = block.exerciseId ? getRecommendation(block.exerciseId) : null;
+          const previousWeight = previous ? weightInput(previous.targetWeight) : null;
+          const next = getRecommendation(exercise.id);
+          const first = block.sets[0];
+
+          if (first && first.reps === "" && (first.weight === "" || first.weight === previousWeight)) {
+            sets = [
+              { ...first, weight: next ? weightInput(next.targetWeight) : "" },
+              ...block.sets.slice(1),
+            ];
+          }
+        }
+
+        return { ...block, exerciseId: exercise.id, exerciseName: exercise.name, sets };
+      })
     );
   }
 
@@ -280,6 +346,13 @@ export default function WorkoutForm({
         </p>
         <h2 className="text-2xl font-black text-zinc-950">{title || defaultTitle || "Workout"}</h2>
         <p className="text-sm text-zinc-500">{intro}</p>
+        <button
+          type="button"
+          onClick={() => setHelpOpen(true)}
+          className="text-sm! font-semibold! text-amber-800 underline underline-offset-2"
+        >
+          ⓘ Was bedeuten die Felder?
+        </button>
       </div>
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -339,12 +412,7 @@ export default function WorkoutForm({
                 exercises={exercises}
                 value={selectedExercise}
                 recommendation={selectedExercise ? getRecommendation(selectedExercise.id) : null}
-                onSelect={(exercise) => {
-                  updateExercise(exerciseDraft.id, {
-                    exerciseId: exercise.id,
-                    exerciseName: exercise.name,
-                  });
-                }}
+                onSelect={(exercise) => selectExercise(exerciseDraft.id, exercise)}
                 onCreateExercise={onCreateExercise}
               />
 
@@ -356,6 +424,12 @@ export default function WorkoutForm({
               />
 
               <div className="space-y-3">
+                {/* Spaltenüberschriften einmal pro Übung, bündig mit den Feldern des ersten Satzes. */}
+                <div className="grid grid-cols-2 gap-2 px-[calc(0.75rem+1px)] text-xs font-semibold text-zinc-500">
+                  <p>Gewicht (kg)</p>
+                  <p>Wiederholungen</p>
+                </div>
+
                 {exerciseDraft.sets.map((set, setIndex) => (
                   <div
                     key={set.id}
@@ -372,7 +446,7 @@ export default function WorkoutForm({
                       </button>
                     </div>
 
-                    <div className="grid grid-cols-3 gap-2">
+                    <div className="grid grid-cols-2 gap-2">
                       <input
                         className="rounded-2xl border border-zinc-200 bg-white px-3 py-4 text-center text-base"
                         placeholder="kg"
@@ -394,18 +468,59 @@ export default function WorkoutForm({
                           updateSet(exerciseDraft.id, set.id, "reps", event.target.value)
                         }
                       />
+                    </div>
 
-                      <input
-                        className="rounded-2xl border border-zinc-200 bg-white px-3 py-4 text-center text-base"
-                        placeholder="RPE"
-                        type="number"
-                        step="0.5"
-                        inputMode="decimal"
-                        value={set.rpe}
-                        onChange={(event) =>
-                          updateSet(exerciseDraft.id, set.id, "rpe", event.target.value)
-                        }
-                      />
+                    <div className="mt-3 space-y-2">
+                      {(setIndex === 0 ||
+                        (set.rpe !== "" && !RPE_BUTTONS.some((b) => b.value === Number(set.rpe)))) && (
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-xs font-semibold text-zinc-500">
+                            {setIndex === 0 ? "RPE (optional)" : ""}
+                          </p>
+                          {set.rpe !== "" &&
+                            !RPE_BUTTONS.some((b) => b.value === Number(set.rpe)) && (
+                              <button
+                                type="button"
+                                onClick={() => updateSet(exerciseDraft.id, set.id, "rpe", "")}
+                                className="rounded-full bg-amber-100 px-3 py-1.5 text-xs! font-semibold! text-amber-900"
+                              >
+                                RPE {formatRpe(set.rpe)} ✕
+                              </button>
+                            )}
+                        </div>
+                      )}
+                      <div className="grid grid-cols-5 gap-1.5">
+                        {RPE_BUTTONS.map(({ value, hint, label }) => {
+                          const selected = set.rpe !== "" && Number(set.rpe) === value;
+
+                          return (
+                            <button
+                              key={value}
+                              type="button"
+                              aria-pressed={selected}
+                              aria-label={`RPE ${value}, ${label}`}
+                              onClick={() =>
+                                updateSet(
+                                  exerciseDraft.id,
+                                  set.id,
+                                  "rpe",
+                                  selected ? "" : String(value)
+                                )
+                              }
+                              className={`min-h-14 rounded-2xl border px-0.5 py-1 font-semibold! ${
+                                selected
+                                  ? "border-zinc-950 bg-zinc-950 text-white"
+                                  : "border-zinc-200 bg-white text-zinc-700"
+                              }`}
+                            >
+                              <span className="block text-base leading-6">{value}</span>
+                              <span className="block text-[0.625rem] font-medium leading-tight opacity-80">
+                                {hint}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -439,6 +554,8 @@ export default function WorkoutForm({
       >
         {saving ? "Speichere Workout..." : saveLabel}
       </button>
+
+      {helpOpen && <FieldHelp onClose={() => setHelpOpen(false)} />}
     </div>
   );
 }

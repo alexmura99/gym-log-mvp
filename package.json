@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test:recommendations": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/test-recommendations.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.105.3",
