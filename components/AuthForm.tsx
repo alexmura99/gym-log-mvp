@@ -33,11 +33,11 @@ export default function AuthForm({
       <div className="mx-auto flex min-h-[calc(100vh_-_4rem_-_env(safe-area-inset-top)_-_env(safe-area-inset-bottom))] max-w-md flex-col justify-center gap-6">
         <div className="space-y-3 text-center">
           <p className="text-sm font-semibold uppercase tracking-[0.25em] text-amber-700">
-            Strength Planner
+            Personal Strength Log
           </p>
           <h1 className="text-4xl font-black tracking-tight">Gym Log</h1>
           <p className="text-sm text-zinc-600">
-            Plane deine Woche, tracke Workouts live und halte vergangene Sessions sauber fest.
+            Plane deine Woche, trage Workouts live ein und halte vergangenes Training fest.
           </p>
         </div>
 
@@ -97,10 +97,6 @@ export default function AuthForm({
           >
             {loading ? "Bitte warten..." : isLogin ? "Einloggen" : "Registrieren"}
           </button>
-
-          <p className="text-xs text-zinc-500">
-            Login per Enter ist aktiviert. Jede Anfrage läuft später über RLS nur auf deine eigenen Daten.
-          </p>
         </form>
       </div>
     </main>

@@ -58,7 +58,7 @@ export default function BackfillWorkout({
         defaultDate={defaultDate}
         defaultTitle="Nachgetragenes Workout"
         saveLabel={editingWorkout ? "Änderungen speichern" : "Workout nachtragen"}
-        intro="Für vergangene Sessions mit mehreren Übungen und Sätzen in einem Rutsch."
+        intro="Trag ein vergangenes Training mit allen Übungen und Sätzen nach."
         onSave={onSave}
         onCreateExercise={onCreateExercise}
         getRecommendation={getRecommendation}

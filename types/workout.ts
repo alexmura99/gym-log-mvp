@@ -124,6 +124,7 @@ export type LastSessionGroup = {
   weightLabel: string; // "50 kg" oder "Eigengewicht"
   repsLabel: string; // "10, 7 Wdh."
   isWorking: boolean; // Arbeitssätze (schwerstes Gewicht) zählen für die Empfehlung
+  setCount: number; // Anzahl der Sätze in dieser Zeile
   rpeLabel: string | null; // nur bei Arbeitssätzen: "RPE 8", "RPE Ø 8,5" oder null
 };
 

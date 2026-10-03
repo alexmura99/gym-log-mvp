@@ -138,7 +138,7 @@ export default function WorkoutHistory({
       </div>
 
       {history.length === 0 && (
-        <p className="text-zinc-500">Noch keine Einträge.</p>
+        <p className="text-zinc-500">Noch keine Workouts gespeichert.</p>
       )}
 
       {weekGroups.map((week) => (
@@ -188,7 +188,7 @@ export default function WorkoutHistory({
                       )}
                     </div>
                     <span className="rounded-full bg-white px-3 py-2 text-xs font-semibold text-zinc-700">
-                      {workout.workout_exercises.length} Übungen
+                      {workout.workout_exercises.length === 1 ? "1 Übung" : `${workout.workout_exercises.length} Übungen`}
                     </span>
                   </div>
                 </button>
@@ -208,7 +208,7 @@ export default function WorkoutHistory({
                           </div>
 
                           <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-700">
-                            {exercise.sets.length} Sätze
+                            {exercise.sets.length === 1 ? "1 Satz" : `${exercise.sets.length} Sätze`}
                           </span>
                         </div>
 

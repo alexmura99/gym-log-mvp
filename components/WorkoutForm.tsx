@@ -342,7 +342,7 @@ export default function WorkoutForm({
     <div className="space-y-4 rounded-4xl border border-white/80 bg-white p-4 shadow-[0_18px_60px_rgba(15,23,42,0.08)]">
       <div className="space-y-1">
         <p className="text-xs font-semibold uppercase tracking-[0.24em] text-amber-700">
-          {mode === "live" ? "Live Workout" : "Training nachtragen"}
+          {mode === "live" ? "Live-Workout" : "Training nachtragen"}
         </p>
         <h2 className="text-2xl font-black text-zinc-950">{title || defaultTitle || "Workout"}</h2>
         <p className="text-sm text-zinc-500">{intro}</p>
@@ -373,7 +373,7 @@ export default function WorkoutForm({
 
       <textarea
         className="min-h-24 w-full rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-4 text-base"
-        placeholder="Notizen, Fokus oder Queue für später"
+        placeholder="Notizen zum Workout (optional)"
         value={notes}
         onChange={(event) => setNotes(event.target.value)}
       />
@@ -418,7 +418,7 @@ export default function WorkoutForm({
 
               <input
                 className="w-full rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-4 text-base"
-                placeholder="Optionale Übungsnotiz"
+                placeholder="Notiz zur Übung (optional)"
                 value={exerciseDraft.note}
                 onChange={(event) => updateExercise(exerciseDraft.id, { note: event.target.value })}
               />

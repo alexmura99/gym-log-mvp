@@ -182,8 +182,8 @@ console.log("Anzeige der letzten Einheit");
 test("eine Zeile pro Gewicht: 40x10, 50x10, 50x7 -> Arbeitssätze nur bei 50 kg", () => {
   const r = rec([[s(40, 10), s(50, 10), s(50, 7)]]);
   assert.deepEqual(r.lastSession.groups, [
-    { weightLabel: "40 kg", repsLabel: "10 Wdh.", isWorking: false, rpeLabel: null },
-    { weightLabel: "50 kg", repsLabel: "10, 7 Wdh.", isWorking: true, rpeLabel: null },
+    { weightLabel: "40 kg", repsLabel: "10 Wdh.", isWorking: false, setCount: 1, rpeLabel: null },
+    { weightLabel: "50 kg", repsLabel: "10, 7 Wdh.", isWorking: true, setCount: 2, rpeLabel: null },
   ]);
 });
 
@@ -234,6 +234,29 @@ test("Datum der letzten Einheit wird durchgereicht", () => {
   });
   assert.equal(r?.lastSession.date, "2026-10-03");
   assert.equal(rec([times(3, s(60, 10))]).lastSession.date, null);
+});
+
+console.log("Einzahl bei genau einem Arbeitssatz");
+
+test("ein Arbeitssatz: 'Der Arbeitssatz hat ...' und setCount 1", () => {
+  const r = rec([[s(60, 12, 8)]]);
+  assert.match(r.suggestion, /^Der Arbeitssatz hat die obere Grenze/);
+  assert.equal(r.lastSession.groups[0].setCount, 1);
+});
+
+test("mehrere Arbeitssätze: 'Alle Arbeitssätze haben ...' und setCount 3", () => {
+  const r = rec([times(3, s(60, 12, 8))]);
+  assert.match(r.suggestion, /^Alle Arbeitssätze haben die obere Grenze/);
+  assert.equal(r.lastSession.groups[0].setCount, 3);
+});
+
+test("ein schwacher Arbeitssatz: 'Der Arbeitssatz lag ...', sonst 'Der schwächste Satz lag ...'", () => {
+  assert.match(rec([[s(60, 5)]]).suggestion, /^Der Arbeitssatz lag mit 5 Wdh\./);
+  assert.match(rec([times(3, s(60, 5))]).suggestion, /^Der schwächste Satz lag mit 5 Wdh\./);
+});
+
+test("ein Arbeitssatz im Bereich: 'Der Arbeitssatz hatte ...'", () => {
+  assert.match(rec([[s(60, 10)]]).suggestion, /Der Arbeitssatz hatte 10 Wdh\./);
 });
 
 console.log("Schrittgrößen");

@@ -166,7 +166,7 @@ export default function ExerciseSelect({
                 </span>
                 <span className="text-xs font-semibold">
                   {group.isWorking
-                    ? `Arbeitssätze · ${group.rpeLabel ?? "RPE –"}`
+                    ? `${group.setCount === 1 ? "Arbeitssatz" : "Arbeitssätze"} · ${group.rpeLabel ?? "RPE –"}`
                     : "Leichtere Sätze · zählen nicht"}
                 </span>
               </li>

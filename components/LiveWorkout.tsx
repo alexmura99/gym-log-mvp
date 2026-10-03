@@ -56,7 +56,7 @@ export default function LiveWorkout({
           </p>
           <h2 className="text-2xl font-black text-zinc-950">Workout jetzt starten</h2>
           <p className="text-sm text-zinc-500">
-            Ein Workout, mehrere Übungen, große Eingaben. Perfekt für den Satz direkt im Gym.
+            Trag deine Sätze direkt im Gym ein.
           </p>
         </div>
 
@@ -97,7 +97,7 @@ export default function LiveWorkout({
         defaultDate={today}
         defaultTitle={suggestedTitle || "Freies Workout"}
         saveLabel="Workout beenden und speichern"
-        intro="Alles bleibt in einem Workout gebündelt, auch wenn du mehrere Übungen loggst."
+        intro="Alle Übungen landen in einem Workout."
         draftKey={draftKey}
         initialExercises={plannedExercises}
         onSave={async (payload) => {

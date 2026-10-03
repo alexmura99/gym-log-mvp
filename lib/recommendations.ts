@@ -90,6 +90,7 @@ function buildGroups(sets: RecommendationSet[], workingWeight: number): LastSess
         weightLabel: group.weight === 0 ? "Eigengewicht" : `${formatNumber(group.weight)} kg`,
         repsLabel: `${group.sets.map((set) => set.reps).join(", ")} Wdh.`,
         isWorking,
+        setCount: group.sets.length,
         rpeLabel,
       };
     });
@@ -126,6 +127,8 @@ export function getWorkoutRecommendation(
   const isWeak = (analysis: SessionAnalysis) => analysis.minReps <= range.min - WEAK_REPS_BELOW_MIN;
   const setCount = last.workingSets.length;
   const basis = setCount === 1 ? " Basis: 1 Satz." : "";
+  const allSets = setCount === 1 ? "Der Arbeitssatz hat" : "Alle Arbeitssätze haben";
+  const weakestSet = setCount === 1 ? "Der Arbeitssatz" : "Der schwächste Satz";
   const rpeKnown = last.averageRpe !== null;
   const rpeText = rpeKnown ? ` (RPE Ø ${formatNumber(last.averageRpe as number)})` : "";
   const lastSession = {
@@ -145,7 +148,7 @@ export function getWorkoutRecommendation(
     return {
       lastSession,
       suggestion:
-        `Alle Arbeitssätze haben die obere Grenze (${range.max} Wdh.) erreicht${rpeText}. ` +
+        `${allSets} die obere Grenze (${range.max} Wdh.) erreicht${rpeText}. ` +
         `Steigere das Gewicht.${rpeKnown ? "" : " Trag RPE ein, dann kann ich genauer sein."}${basis}`,
       trend: "increase",
       targetWeight,
@@ -193,7 +196,7 @@ export function getWorkoutRecommendation(
     return {
       lastSession,
       suggestion:
-        `Der schwächste Satz lag mit ${last.minReps} Wdh. unter dem Bereich (${range.min}–${range.max}). ` +
+        `${weakestSet} lag mit ${last.minReps} Wdh. unter dem Bereich (${range.min}–${range.max}). ` +
         `Bleib beim Gewicht und arbeite dich auf ${range.min} Wdh. hoch.${basis}`,
       trend: "hold",
       targetWeight: last.workingWeight,
@@ -209,7 +212,7 @@ export function getWorkoutRecommendation(
     lastSession,
     suggestion:
       `Bleib beim Gewicht und steigere die Wiederholungen: ` +
-      `Der schwächste Satz hatte ${last.minReps} Wdh.${basis}`,
+      `${weakestSet} hatte ${last.minReps} Wdh.${basis}`,
     trend: "hold",
     targetWeight: last.workingWeight,
     targetReps,

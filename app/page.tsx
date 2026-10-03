@@ -315,7 +315,9 @@ export default function Home() {
         return;
       }
 
-      alert("Registrierung erfolgreich. Prüfe ggf. deine E-Mails.");
+      alert(
+        "Registrierung erfolgreich. Falls eine Bestätigung nötig ist, findest du die E-Mail in deinem Postfach."
+      );
     } finally {
       setAuthLoading(false);
     }
@@ -984,16 +986,9 @@ export default function Home() {
             <div className="flex items-center justify-between gap-3">
               <h1 className="min-w-0 text-3xl font-black tracking-tight">Gym Log</h1>
               <span className="shrink-0 whitespace-nowrap rounded-full bg-amber-100 px-3 py-2 text-xs font-semibold text-amber-900">
-                {pageLoading ? "Sync..." : formatDateGermanShort(toLocalIsoDate())}
+                {pageLoading ? "Lädt..." : formatDateGermanShort(toLocalIsoDate())}
               </span>
             </div>
-          </div>
-
-          <div className="rounded-3xl bg-zinc-50 p-4">
-            <p className="text-sm font-semibold text-zinc-900">Eingeloggt als {user.email}</p>
-            <p className="mt-1 text-sm text-zinc-500">
-              Plane die Woche, tracke live im Gym und nutze alte Leistungen für die nächste Lastentscheidung.
-            </p>
           </div>
         </header>
 
