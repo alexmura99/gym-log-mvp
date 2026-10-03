@@ -13,6 +13,7 @@ import {
   OFFLINE_TEXT_SAVE_WORKOUT,
   describeError,
 } from "@/lib/errors";
+import { fetchAll } from "@/lib/fetchAll";
 import { getWorkoutRecommendation } from "@/lib/recommendations";
 import { APP_TABS, WEEKDAY_OPTIONS } from "@/types/workout";
 import type { User } from "@supabase/supabase-js";
@@ -219,32 +220,49 @@ export default function Home() {
   }
 
   async function loadHistory(userId: string, exerciseRows: Exercise[]): Promise<boolean> {
-    const { data: workouts, error: workoutsError } = await supabase
-      .from("workouts")
-      .select("id,user_id,date,title,notes,created_at")
-      .eq("user_id", userId)
-      .order("date", { ascending: false });
+    const { data: workouts, error: workoutsError } = await fetchAll<Workout>((from, to) =>
+      supabase
+        .from("workouts")
+        .select("id,user_id,date,title,notes,created_at")
+        .eq("user_id", userId)
+        .order("date", { ascending: false })
+        .order("id", { ascending: true })
+        .range(from, to)
+    );
 
     if (workoutsError) {
       reportLoadError(workoutsError);
       return false;
     }
 
-    const { data: workoutExercises, error: workoutExercisesError } = await supabase
-      .from("workout_exercises")
-      .select("id,user_id,workout_id,exercise_id,note")
-      .eq("user_id", userId);
+    const { data: workoutExercises, error: workoutExercisesError } =
+      await fetchAll<WorkoutExercise>((from, to) =>
+        supabase
+          .from("workout_exercises")
+          .select("id,user_id,workout_id,exercise_id,note")
+          .eq("user_id", userId)
+          .order("workout_id", { ascending: true })
+          .order("position", { ascending: true })
+          .order("id", { ascending: true })
+          .range(from, to)
+      );
 
     if (workoutExercisesError) {
       reportLoadError(workoutExercisesError);
       return false;
     }
 
-    const { data: sets, error: setsError } = await supabase
-      .from("sets")
-      .select("id,user_id,workout_id,workout_exercise_id,set_number,weight,reps,rpe,created_at")
-      .eq("user_id", userId)
-      .order("set_number", { ascending: true });
+    const { data: sets, error: setsError } = await fetchAll<WorkoutSet>((from, to) =>
+      supabase
+        .from("sets")
+        .select("id,user_id,workout_id,workout_exercise_id,set_number,weight,reps,rpe,created_at")
+        .eq("user_id", userId)
+        .order("workout_id", { ascending: true })
+        .order("workout_exercise_id", { ascending: true })
+        .order("set_number", { ascending: true })
+        .order("id", { ascending: true })
+        .range(from, to)
+    );
 
     if (setsError) {
       reportLoadError(setsError);
@@ -254,7 +272,7 @@ export default function Home() {
     const exerciseMap = new Map(exerciseRows.map((exercise) => [exercise.id, exercise]));
     const setsByWorkoutExercise = new Map<string, WorkoutSet[]>();
 
-    ((sets ?? []) as WorkoutSet[]).forEach((set) => {
+    sets.forEach((set) => {
       const currentSets = setsByWorkoutExercise.get(set.workout_exercise_id ?? "") ?? [];
       currentSets.push(set);
       setsByWorkoutExercise.set(set.workout_exercise_id ?? "", currentSets);
@@ -262,7 +280,7 @@ export default function Home() {
 
     const workoutExercisesByWorkout = new Map<string, WorkoutExercise[]>();
 
-    ((workoutExercises ?? []) as WorkoutExercise[]).forEach((exerciseRow) => {
+    workoutExercises.forEach((exerciseRow) => {
       const currentExercises = workoutExercisesByWorkout.get(exerciseRow.workout_id ?? "") ?? [];
       currentExercises.push({
         ...exerciseRow,
@@ -272,7 +290,7 @@ export default function Home() {
       workoutExercisesByWorkout.set(exerciseRow.workout_id ?? "", currentExercises);
     });
 
-    const merged = ((workouts ?? []) as Workout[]).map((workout) => ({
+    const merged = workouts.map((workout) => ({
       ...workout,
       workout_exercises: workoutExercisesByWorkout.get(workout.id) ?? [],
     }));
