@@ -2,6 +2,11 @@
 
 import { useState } from "react";
 import WorkoutForm from "@/components/WorkoutForm";
+import {
+  clearWorkoutDraft,
+  liveWorkoutDraftKey,
+  readWorkoutDraft,
+} from "@/lib/workoutDraft";
 import type {
   Exercise,
   RecommendationResult,
@@ -9,9 +14,10 @@ import type {
 } from "@/types/workout";
 
 type LiveWorkoutProps = {
+  userId: string;
   exercises: Exercise[];
   suggestedTitle: string;
-  onSave: (payload: WorkoutSaveInput) => Promise<void>;
+  onSave: (payload: WorkoutSaveInput) => Promise<boolean>;
   onCreateExercise: (payload: {
     name: string;
     muscleGroup: string;
@@ -20,13 +26,16 @@ type LiveWorkoutProps = {
 };
 
 export default function LiveWorkout({
+  userId,
   exercises,
   suggestedTitle,
   onSave,
   onCreateExercise,
   getRecommendation,
 }: LiveWorkoutProps) {
-  const [isActive, setIsActive] = useState(false);
+  const draftKey = userId ? liveWorkoutDraftKey(userId) : undefined;
+  // Ein gespeicherter Entwurf bedeutet: Es läuft noch ein Workout.
+  const [isActive, setIsActive] = useState(() => readWorkoutDraft(draftKey) !== null);
   const today = new Date().toISOString().split("T")[0];
 
   if (!isActive) {
@@ -59,20 +68,40 @@ export default function LiveWorkout({
   }
 
   return (
-    <WorkoutForm
-      key={isActive ? `live-${today}-${suggestedTitle}` : "live-idle"}
-      mode="live"
-      exercises={exercises}
-      defaultDate={today}
-      defaultTitle={suggestedTitle || "Freies Workout"}
-      saveLabel="Workout beenden und speichern"
-      intro="Alles bleibt in einem Workout gebündelt, auch wenn du mehrere Übungen loggst."
-      onSave={async (payload) => {
-        await onSave(payload);
-        setIsActive(false);
-      }}
-      onCreateExercise={onCreateExercise}
-      getRecommendation={getRecommendation}
-    />
+    <div className="space-y-4">
+      <WorkoutForm
+        mode="live"
+        exercises={exercises}
+        defaultDate={today}
+        defaultTitle={suggestedTitle || "Freies Workout"}
+        saveLabel="Workout beenden und speichern"
+        intro="Alles bleibt in einem Workout gebündelt, auch wenn du mehrere Übungen loggst."
+        draftKey={draftKey}
+        onSave={async (payload) => {
+          const saved = await onSave(payload);
+
+          if (saved) {
+            setIsActive(false);
+          }
+
+          return saved;
+        }}
+        onCreateExercise={onCreateExercise}
+        getRecommendation={getRecommendation}
+      />
+
+      <button
+        type="button"
+        onClick={() => {
+          if (window.confirm("Laufendes Workout verwerfen? Alle Eingaben gehen verloren.")) {
+            clearWorkoutDraft(draftKey);
+            setIsActive(false);
+          }
+        }}
+        className="w-full rounded-2xl border border-rose-200 bg-white px-4 py-3 text-sm font-semibold text-rose-700"
+      >
+        Workout verwerfen
+      </button>
+    </div>
   );
 }

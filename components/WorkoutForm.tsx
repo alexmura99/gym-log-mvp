@@ -1,7 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import ExerciseSelect from "@/components/ExerciseSelect";
+import {
+  clearWorkoutDraft,
+  readWorkoutDraft,
+  writeWorkoutDraft,
+} from "@/lib/workoutDraft";
 import type {
   Exercise,
   RecommendationResult,
@@ -19,7 +24,8 @@ type WorkoutFormProps = {
   defaultTitle: string;
   saveLabel: string;
   intro: string;
-  onSave: (payload: WorkoutSaveInput) => Promise<void>;
+  draftKey?: string;
+  onSave: (payload: WorkoutSaveInput) => Promise<boolean>;
   onCreateExercise: (payload: {
     name: string;
     muscleGroup: string;
@@ -86,20 +92,44 @@ export default function WorkoutForm({
   defaultTitle,
   saveLabel,
   intro,
+  draftKey,
   onSave,
   onCreateExercise,
   getRecommendation,
 }: WorkoutFormProps) {
   const initialDraft = buildDraftFromWorkout(initialWorkout);
-  const [date, setDate] = useState(initialWorkout ? initialDraft.date : defaultDate);
-  const [title, setTitle] = useState(initialWorkout ? initialDraft.title : defaultTitle);
-  const [notes, setNotes] = useState(initialWorkout ? initialDraft.notes : "");
-  const [exerciseDrafts, setExerciseDrafts] = useState<WorkoutDraftExercise[]>(
-    initialWorkout && initialDraft.exercises.length > 0
-      ? initialDraft.exercises
-      : [createDraftExercise()]
+  // Wird nur im Initialwert gelesen, damit der Speicher-Effekt den Entwurf beim Mounten nicht überschreibt.
+  const [savedDraft] = useState(() => (initialWorkout ? null : readWorkoutDraft(draftKey)));
+  const [date, setDate] = useState(
+    initialWorkout ? initialDraft.date : (savedDraft?.date ?? defaultDate)
   );
+  const [title, setTitle] = useState(
+    initialWorkout ? initialDraft.title : (savedDraft?.title ?? defaultTitle)
+  );
+  const [notes, setNotes] = useState(
+    initialWorkout ? initialDraft.notes : (savedDraft?.notes ?? "")
+  );
+  const [exerciseDrafts, setExerciseDrafts] = useState<WorkoutDraftExercise[]>(() => {
+    if (initialWorkout && initialDraft.exercises.length > 0) {
+      return initialDraft.exercises;
+    }
+
+    if (savedDraft && savedDraft.exercises.length > 0) {
+      return savedDraft.exercises;
+    }
+
+    return [createDraftExercise()];
+  });
   const [saving, setSaving] = useState(false);
+  const persistDraft = useRef(true);
+
+  useEffect(() => {
+    if (!draftKey || initialWorkout || !persistDraft.current) {
+      return;
+    }
+
+    writeWorkoutDraft(draftKey, { date, title, notes, exercises: exerciseDrafts });
+  }, [draftKey, initialWorkout, date, title, notes, exerciseDrafts]);
 
   function updateExercise(exerciseId: string, updates: Partial<WorkoutDraftExercise>) {
     setExerciseDrafts((current) =>
@@ -192,7 +222,7 @@ export default function WorkoutForm({
     setSaving(true);
 
     try {
-      await onSave({
+      const saved = await onSave({
         id: initialWorkout?.id,
         date,
         title: title.trim(),
@@ -200,7 +230,9 @@ export default function WorkoutForm({
         exercises: normalizedExercises,
       });
 
-      if (!initialWorkout) {
+      if (saved && !initialWorkout) {
+        persistDraft.current = false;
+        clearWorkoutDraft(draftKey);
         setDate(defaultDate);
         setTitle(defaultTitle);
         setNotes("");

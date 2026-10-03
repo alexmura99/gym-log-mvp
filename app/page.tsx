@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useEffectEvent, useState } from "react";
+import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import AuthForm from "@/components/AuthForm";
 import BackfillWorkout from "@/components/BackfillWorkout";
@@ -51,22 +51,37 @@ export default function Home() {
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [plannerDays, setPlannerDays] = useState<PlannerDay[]>([]);
   const [history, setHistory] = useState<Workout[]>([]);
+  const [authReady, setAuthReady] = useState(false);
   const [pageLoading, setPageLoading] = useState(false);
   const [savingPlannerDayId, setSavingPlannerDayId] = useState<string | null>(null);
   const [editingWorkout, setEditingWorkout] = useState<Workout | null>(null);
+  const loadedUserIdRef = useRef<string | null>(null);
 
-  async function loadDashboard(userId: string) {
+  // Meldet true, wenn Übungen, Plan und Historie vollständig geladen wurden.
+  async function loadDashboard(userId: string): Promise<boolean> {
     setPageLoading(true);
 
     try {
       const loadedExercises = await loadExercises(userId);
-      await Promise.all([loadPlanner(userId), loadHistory(userId, loadedExercises)]);
+
+      if (!loadedExercises) {
+        return false;
+      }
+
+      const results = await Promise.all([
+        loadPlanner(userId),
+        loadHistory(userId, loadedExercises),
+      ]);
+      return results.every(Boolean);
+    } catch (error) {
+      console.error(error);
+      return false;
     } finally {
       setPageLoading(false);
     }
   }
 
-  async function loadExercises(userId: string) {
+  async function loadExercises(userId: string): Promise<Exercise[] | null> {
     const { data, error } = await supabase
       .from("exercises")
       .select("id,user_id,name,muscle_group,is_public,created_at")
@@ -75,7 +90,7 @@ export default function Home() {
 
     if (error) {
       alert(error.message);
-      return [] as Exercise[];
+      return null;
     }
 
     const rows = (data ?? []) as Exercise[];
@@ -83,7 +98,7 @@ export default function Home() {
     return rows;
   }
 
-  async function loadPlanner(userId: string) {
+  async function loadPlanner(userId: string): Promise<boolean> {
     const { data, error } = await supabase
       .from("weekly_plan_days")
       .select("id,user_id,day_of_week,title,is_rest_day,position,notes,planned_exercise_ids,created_at")
@@ -92,7 +107,7 @@ export default function Home() {
 
     if (error) {
       alert(error.message);
-      return;
+      return false;
     }
 
     const existingDays = ((data ?? []) as PlannerDay[]).sort(
@@ -176,9 +191,11 @@ export default function Home() {
         planned_exercise_ids: day.planned_exercise_ids,
       }))
     );
+
+    return true;
   }
 
-  async function loadHistory(userId: string, exerciseRows: Exercise[]) {
+  async function loadHistory(userId: string, exerciseRows: Exercise[]): Promise<boolean> {
     const { data: workouts, error: workoutsError } = await supabase
       .from("workouts")
       .select("id,user_id,date,title,notes,created_at")
@@ -187,7 +204,7 @@ export default function Home() {
 
     if (workoutsError) {
       alert(workoutsError.message);
-      return;
+      return false;
     }
 
     const { data: workoutExercises, error: workoutExercisesError } = await supabase
@@ -197,7 +214,7 @@ export default function Home() {
 
     if (workoutExercisesError) {
       alert(workoutExercisesError.message);
-      return;
+      return false;
     }
 
     const { data: sets, error: setsError } = await supabase
@@ -208,7 +225,7 @@ export default function Home() {
 
     if (setsError) {
       alert(setsError.message);
-      return;
+      return false;
     }
 
     const exerciseMap = new Map(exerciseRows.map((exercise) => [exercise.id, exercise]));
@@ -238,6 +255,7 @@ export default function Home() {
     }));
 
     setHistory(merged);
+    return true;
   }
 
   async function signUp() {
@@ -407,9 +425,9 @@ export default function Home() {
     });
   }
 
-  async function saveWorkout(payload: WorkoutSaveInput) {
+  async function saveWorkout(payload: WorkoutSaveInput): Promise<boolean> {
     if (!user) {
-      return;
+      return false;
     }
 
     let workoutId = payload.id;
@@ -429,7 +447,7 @@ export default function Home() {
 
       if (updateError) {
         alert(updateError.message);
-        return;
+        return false;
       }
 
       const { error: deleteSetsError } = await supabase
@@ -440,7 +458,7 @@ export default function Home() {
 
       if (deleteSetsError) {
         alert(deleteSetsError.message);
-        return;
+        return false;
       }
 
       const { error: deleteWorkoutExercisesError } = await supabase
@@ -451,7 +469,7 @@ export default function Home() {
 
       if (deleteWorkoutExercisesError) {
         alert(deleteWorkoutExercisesError.message);
-        return;
+        return false;
       }
     } else {
       const { data, error } = await supabase
@@ -467,7 +485,7 @@ export default function Home() {
 
       if (error) {
         alert(error.message);
-        return;
+        return false;
       }
 
       workoutId = data.id as string;
@@ -488,7 +506,7 @@ export default function Home() {
 
     if (workoutExercisesError) {
       alert(workoutExercisesError.message);
-      return;
+      return false;
     }
 
     const insertedExerciseMap = new Map(
@@ -511,13 +529,14 @@ export default function Home() {
 
     if (setsError) {
       alert(setsError.message);
-      return;
+      return false;
     }
 
     setEditingWorkout(null);
-    const loadedExercises = await loadExercises(user.id);
+    const loadedExercises = (await loadExercises(user.id)) ?? exercises;
     await loadHistory(user.id, loadedExercises);
     setActiveTab("history");
+    return true;
   }
 
   async function deleteWorkout(workoutId: string) {
@@ -558,7 +577,7 @@ export default function Home() {
       return;
     }
 
-    const loadedExercises = await loadExercises(user.id);
+    const loadedExercises = (await loadExercises(user.id)) ?? exercises;
     await loadHistory(user.id, loadedExercises);
   }
 
@@ -656,10 +675,23 @@ export default function Home() {
 
   const syncDashboard = useEffectEvent(async (nextUser: User | null) => {
     if (nextUser) {
-      await loadDashboard(nextUser.id);
+      // Token-Refresh und Tab-Rückkehr melden denselben Nutzer erneut: dann nicht neu laden.
+      if (loadedUserIdRef.current === nextUser.id) {
+        return;
+      }
+
+      loadedUserIdRef.current = nextUser.id;
+      const loaded = await loadDashboard(nextUser.id);
+
+      // Nur ein erfolgreiches Laden merken, sonst versucht es der nächste Anlass erneut.
+      if (!loaded && loadedUserIdRef.current === nextUser.id) {
+        loadedUserIdRef.current = null;
+      }
+
       return;
     }
 
+    loadedUserIdRef.current = null;
     setExercises([]);
     setPlannerDays([]);
     setHistory([]);
@@ -670,29 +702,30 @@ export default function Home() {
   useEffect(() => {
     let isMounted = true;
 
-    void supabase.auth.getUser().then(async ({ data }) => {
+    // Fallback, falls die lokale Sitzung auf eine hängende Anfrage wartet (schlechter Empfang).
+    const readyFallback = setTimeout(() => {
+      if (isMounted) {
+        setAuthReady(true);
+      }
+    }, 8000);
+
+    // INITIAL_SESSION kommt aus der lokal gespeicherten Sitzung, ohne eigene Serveranfrage.
+    // Der Callback läuft im Auth-Lock von supabase-js. Supabase-Aufrufe dürfen deshalb
+    // nicht darin abgewartet werden (Deadlock), sondern erst danach per setTimeout.
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!isMounted) {
         return;
       }
 
-      setUser(data.user);
-      await syncDashboard(data.user);
+      const nextUser = session?.user ?? null;
+      setUser(nextUser);
+      setAuthReady(true);
+      setTimeout(() => void syncDashboard(nextUser), 0);
     });
-
-    const { data: listener } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
-        if (!isMounted) {
-          return;
-        }
-
-        const nextUser = session?.user ?? null;
-        setUser(nextUser);
-        await syncDashboard(nextUser);
-      }
-    );
 
     return () => {
       isMounted = false;
+      clearTimeout(readyFallback);
       listener.subscription.unsubscribe();
     };
   }, []);
@@ -713,6 +746,7 @@ export default function Home() {
       case "live":
         return (
           <LiveWorkout
+            userId={user?.id ?? ""}
             exercises={exercises}
             suggestedTitle={getTodaysPlanTitle()}
             onSave={saveWorkout}
@@ -786,6 +820,14 @@ export default function Home() {
       default:
         return null;
     }
+  }
+
+  if (!authReady) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-[radial-gradient(circle_at_top,#fef3c7,#f8fafc_55%)] px-4 text-zinc-950">
+        <p className="text-sm font-semibold text-zinc-600">Lade...</p>
+      </main>
+    );
   }
 
   if (!user) {

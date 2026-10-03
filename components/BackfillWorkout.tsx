@@ -11,7 +11,7 @@ import type {
 type BackfillWorkoutProps = {
   exercises: Exercise[];
   editingWorkout: Workout | null;
-  onSave: (payload: WorkoutSaveInput) => Promise<void>;
+  onSave: (payload: WorkoutSaveInput) => Promise<boolean>;
   onCancelEdit: () => void;
   onCreateExercise: (payload: {
     name: string;
