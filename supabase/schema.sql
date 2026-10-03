@@ -127,6 +127,9 @@ values
   ('Trizepsdrücken', 'Trizeps', true)
 on conflict do nothing;
 
+-- Die Funktion save_workout (Speichern/Ersetzen eines Workouts in einer Transaktion)
+-- steht in supabase/migrations/001_save_workout.sql und wird dort ausgefuehrt.
+
 create or replace function public.handle_new_user()
 returns trigger
 language plpgsql

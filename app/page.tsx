@@ -396,181 +396,33 @@ export default function Home() {
     return null;
   }
 
-  async function archiveWorkoutVersion(workoutId: string, userId: string) {
-    const { data: workoutRow, error: workoutError } = await supabase
-      .from("workouts")
-      .select("id,user_id,date,title,notes,created_at")
-      .eq("id", workoutId)
-      .eq("user_id", userId)
-      .maybeSingle();
-
-    if (workoutError || !workoutRow) {
-      return;
-    }
-
-    const { data: versionRows } = await supabase
-      .from("workout_versions")
-      .select("version_number")
-      .eq("workout_id", workoutId)
-      .eq("user_id", userId)
-      .order("version_number", { ascending: false })
-      .limit(1);
-
-    const nextVersion = ((versionRows?.[0]?.version_number as number | undefined) ?? 0) + 1;
-
-    const { data: exerciseRows } = await supabase
-      .from("workout_exercises")
-      .select("id,user_id,workout_id,exercise_id,note,position,created_at")
-      .eq("workout_id", workoutId)
-      .eq("user_id", userId)
-      .order("position", { ascending: true });
-
-    const exerciseIds = (exerciseRows ?? []).map((row) => row.id as string);
-
-    type ArchivedSetRow = {
-      id: string;
-      user_id: string;
-      workout_id: string;
-      workout_exercise_id: string;
-      set_number: number;
-      weight: number;
-      reps: number;
-      rpe: number | null;
-      created_at: string;
-    };
-
-    let setRows: ArchivedSetRow[] = [];
-
-    if (exerciseIds.length > 0) {
-      const { data } = await supabase
-        .from("sets")
-        .select("id,user_id,workout_id,workout_exercise_id,set_number,weight,reps,rpe,created_at")
-        .in("workout_exercise_id", exerciseIds)
-        .eq("user_id", userId)
-        .order("set_number", { ascending: true });
-      setRows = (data ?? []) as ArchivedSetRow[];
-    }
-
-    const snapshot = {
-      workout: workoutRow,
-      workout_exercises: exerciseRows ?? [],
-      sets: setRows,
-      archived_at: new Date().toISOString(),
-    };
-
-    await supabase.from("workout_versions").insert({
-      user_id: userId,
-      workout_id: workoutId,
-      version_number: nextVersion,
-      reason: "update",
-      snapshot,
-    });
-  }
-
   async function saveWorkout(payload: WorkoutSaveInput): Promise<boolean> {
     if (!user) {
       return false;
     }
 
-    let workoutId = payload.id;
+    // Eine Datenbankfunktion erledigt alles in einer Transaktion (inkl. Snapshot in
+    // workout_versions beim Ersetzen). Siehe supabase/migrations/001_save_workout.sql.
+    const { error } = await supabase.rpc("save_workout", {
+      payload: {
+        id: payload.id,
+        date: payload.date,
+        title: payload.title,
+        notes: payload.notes,
+        exercises: payload.exercises.map((exercise) => ({
+          exerciseId: exercise.exerciseId,
+          note: exercise.note,
+          sets: exercise.sets.map((set) => ({
+            weight: Number(set.weight),
+            reps: Number(set.reps),
+            rpe: set.rpe ? Number(set.rpe) : null,
+          })),
+        })),
+      },
+    });
 
-    if (workoutId) {
-      await archiveWorkoutVersion(workoutId, user.id);
-
-      const { error: updateError } = await supabase
-        .from("workouts")
-        .update({
-          date: payload.date,
-          title: payload.title,
-          notes: payload.notes || null,
-        })
-        .eq("id", workoutId)
-        .eq("user_id", user.id);
-
-      if (updateError) {
-        alert(describeError(updateError, OFFLINE_TEXT_SAVE_WORKOUT));
-        return false;
-      }
-
-      const { error: deleteSetsError } = await supabase
-        .from("sets")
-        .delete()
-        .eq("workout_id", workoutId)
-        .eq("user_id", user.id);
-
-      if (deleteSetsError) {
-        alert(describeError(deleteSetsError, OFFLINE_TEXT_SAVE_WORKOUT));
-        return false;
-      }
-
-      const { error: deleteWorkoutExercisesError } = await supabase
-        .from("workout_exercises")
-        .delete()
-        .eq("workout_id", workoutId)
-        .eq("user_id", user.id);
-
-      if (deleteWorkoutExercisesError) {
-        alert(describeError(deleteWorkoutExercisesError, OFFLINE_TEXT_SAVE_WORKOUT));
-        return false;
-      }
-    } else {
-      const { data, error } = await supabase
-        .from("workouts")
-        .insert({
-          user_id: user.id,
-          date: payload.date,
-          title: payload.title,
-          notes: payload.notes || null,
-        })
-        .select("id")
-        .single();
-
-      if (error) {
-        alert(describeError(error, OFFLINE_TEXT_SAVE_WORKOUT));
-        return false;
-      }
-
-      workoutId = data.id as string;
-    }
-
-    const workoutExerciseRows = payload.exercises.map((exercise, index) => ({
-      user_id: user.id,
-      workout_id: workoutId,
-      exercise_id: exercise.exerciseId,
-      note: exercise.note || null,
-      position: index,
-    }));
-
-    const { data: insertedWorkoutExercises, error: workoutExercisesError } = await supabase
-      .from("workout_exercises")
-      .insert(workoutExerciseRows)
-      .select("id,exercise_id");
-
-    if (workoutExercisesError) {
-      alert(describeError(workoutExercisesError, OFFLINE_TEXT_SAVE_WORKOUT));
-      return false;
-    }
-
-    const insertedExerciseMap = new Map(
-      (insertedWorkoutExercises ?? []).map((row) => [row.exercise_id as string, row.id as string])
-    );
-
-    const setRows = payload.exercises.flatMap((exercise) =>
-      exercise.sets.map((set, index) => ({
-        user_id: user.id,
-        workout_id: workoutId,
-        workout_exercise_id: insertedExerciseMap.get(exercise.exerciseId),
-        set_number: index + 1,
-        weight: Number(set.weight),
-        reps: Number(set.reps),
-        rpe: set.rpe ? Number(set.rpe) : null,
-      }))
-    );
-
-    const { error: setsError } = await supabase.from("sets").insert(setRows);
-
-    if (setsError) {
-      alert(describeError(setsError, OFFLINE_TEXT_SAVE_WORKOUT));
+    if (error) {
+      alert(describeError(error, OFFLINE_TEXT_SAVE_WORKOUT));
       return false;
     }
 
@@ -586,36 +438,15 @@ export default function Home() {
       return;
     }
 
-    const { error: deleteSetsError } = await supabase
-      .from("sets")
-      .delete()
-      .eq("workout_id", workoutId)
-      .eq("user_id", user.id);
-
-    if (deleteSetsError) {
-      alert(describeError(deleteSetsError));
-      return;
-    }
-
-    const { error: deleteWorkoutExercisesError } = await supabase
-      .from("workout_exercises")
-      .delete()
-      .eq("workout_id", workoutId)
-      .eq("user_id", user.id);
-
-    if (deleteWorkoutExercisesError) {
-      alert(describeError(deleteWorkoutExercisesError));
-      return;
-    }
-
-    const { error: deleteWorkoutError } = await supabase
+    // Sätze und Übungen hängen per on delete cascade am Workout: ein DELETE reicht und ist atomar.
+    const { error } = await supabase
       .from("workouts")
       .delete()
       .eq("id", workoutId)
       .eq("user_id", user.id);
 
-    if (deleteWorkoutError) {
-      alert(describeError(deleteWorkoutError));
+    if (error) {
+      alert(describeError(error));
       return;
     }
 

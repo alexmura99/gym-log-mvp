@@ -87,7 +87,8 @@ export type WorkoutDraftExercise = {
 };
 
 export type WorkoutSaveInput = {
-  id?: string;
+  // Vom Client einmal pro Workout erzeugt; bei einem erneuten Versuch dieselbe ID.
+  id: string;
   date: string;
   title: string;
   notes: string;

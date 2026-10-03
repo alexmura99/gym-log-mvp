@@ -120,6 +120,11 @@ export default function WorkoutForm({
 
     return [createDraftExercise()];
   });
+  // Die ID gehört zum Eintrag und bleibt bei einem erneuten Speicherversuch (auch nach
+  // Neuladen, per Entwurf) gleich, damit nie ein zweites Workout entsteht.
+  const [workoutId, setWorkoutId] = useState(
+    () => initialWorkout?.id ?? savedDraft?.workoutId ?? crypto.randomUUID()
+  );
   const [saving, setSaving] = useState(false);
   const persistDraft = useRef(true);
 
@@ -128,8 +133,8 @@ export default function WorkoutForm({
       return;
     }
 
-    writeWorkoutDraft(draftKey, { date, title, notes, exercises: exerciseDrafts });
-  }, [draftKey, initialWorkout, date, title, notes, exerciseDrafts]);
+    writeWorkoutDraft(draftKey, { workoutId, date, title, notes, exercises: exerciseDrafts });
+  }, [draftKey, initialWorkout, workoutId, date, title, notes, exerciseDrafts]);
 
   function updateExercise(exerciseId: string, updates: Partial<WorkoutDraftExercise>) {
     setExerciseDrafts((current) =>
@@ -223,7 +228,7 @@ export default function WorkoutForm({
 
     try {
       const saved = await onSave({
-        id: initialWorkout?.id,
+        id: workoutId,
         date,
         title: title.trim(),
         notes: notes.trim(),
@@ -237,6 +242,7 @@ export default function WorkoutForm({
         setTitle(defaultTitle);
         setNotes("");
         setExerciseDrafts([createDraftExercise()]);
+        setWorkoutId(crypto.randomUUID());
       }
     } finally {
       setSaving(false);

@@ -1,6 +1,7 @@
 import type { WorkoutDraftExercise } from "@/types/workout";
 
 export type StoredWorkoutDraft = {
+  workoutId: string;
   date: string;
   title: string;
   notes: string;
@@ -15,7 +16,7 @@ function isString(value: unknown): value is string {
   return typeof value === "string";
 }
 
-function isStoredDraft(value: unknown): value is StoredWorkoutDraft {
+function isStoredDraft(value: unknown): value is Omit<StoredWorkoutDraft, "workoutId"> {
   if (!value || typeof value !== "object") {
     return false;
   }
@@ -74,7 +75,17 @@ export function readWorkoutDraft(key: string | undefined): StoredWorkoutDraft | 
     }
 
     const parsed: unknown = JSON.parse(raw);
-    return isStoredDraft(parsed) ? parsed : null;
+
+    if (!isStoredDraft(parsed)) {
+      return null;
+    }
+
+    // Entwürfe aus früheren Versionen haben noch keine Workout-ID.
+    const workoutId = (parsed as { workoutId?: unknown }).workoutId;
+    return {
+      ...parsed,
+      workoutId: isString(workoutId) && workoutId ? workoutId : crypto.randomUUID(),
+    };
   } catch {
     return null;
   }
