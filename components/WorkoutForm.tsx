@@ -349,7 +349,7 @@ export default function WorkoutForm({
         <button
           type="button"
           onClick={() => setHelpOpen(true)}
-          className="text-sm! font-semibold! text-amber-800 underline underline-offset-2"
+          className="inline-flex min-h-11 items-center text-sm font-semibold text-amber-800 underline underline-offset-2"
         >
           ⓘ Was bedeuten die Felder?
         </button>
@@ -401,7 +401,7 @@ export default function WorkoutForm({
                 <button
                   type="button"
                   onClick={() => removeExercise(exerciseDraft.id)}
-                  className="rounded-full bg-rose-100 px-3 py-2 text-xs font-semibold text-rose-700"
+                  className="rounded-full bg-rose-100 px-3 py-2 text-xs font-semibold min-h-11 text-rose-700"
                 >
                   Entfernen
                 </button>
@@ -440,7 +440,7 @@ export default function WorkoutForm({
                       <button
                         type="button"
                         onClick={() => removeSet(exerciseDraft.id, set.id)}
-                        className="text-xs font-semibold text-rose-600"
+                        className="px-2 text-xs font-semibold min-h-11 text-rose-600"
                       >
                         Satz löschen
                       </button>
@@ -482,7 +482,7 @@ export default function WorkoutForm({
                               <button
                                 type="button"
                                 onClick={() => updateSet(exerciseDraft.id, set.id, "rpe", "")}
-                                className="rounded-full bg-amber-100 px-3 py-1.5 text-xs! font-semibold! text-amber-900"
+                                className="min-h-11 rounded-full bg-amber-100 px-3 py-1.5 text-xs font-semibold text-amber-900"
                               >
                                 RPE {formatRpe(set.rpe)} ✕
                               </button>
@@ -507,7 +507,7 @@ export default function WorkoutForm({
                                   selected ? "" : String(value)
                                 )
                               }
-                              className={`min-h-14 rounded-2xl border px-0.5 py-1 font-semibold! ${
+                              className={`min-h-14 rounded-2xl border px-0.5 py-1 font-semibold ${
                                 selected
                                   ? "border-zinc-950 bg-zinc-950 text-white"
                                   : "border-zinc-200 bg-white text-zinc-700"
@@ -529,7 +529,7 @@ export default function WorkoutForm({
               <button
                 type="button"
                 onClick={() => addSet(exerciseDraft.id)}
-                className="w-full rounded-2xl border border-zinc-300 bg-white px-4 py-4 text-sm font-semibold text-zinc-900"
+                className="w-full rounded-2xl border border-zinc-300 bg-white px-4 py-4 text-sm font-semibold min-h-11 text-zinc-900"
               >
                 + Satz hinzufügen
               </button>
@@ -541,7 +541,7 @@ export default function WorkoutForm({
       <button
         type="button"
         onClick={addExercise}
-        className="w-full rounded-2xl border border-dashed border-zinc-300 bg-zinc-50 px-4 py-4 text-sm font-semibold text-zinc-900"
+        className="w-full rounded-2xl border border-dashed border-zinc-300 bg-zinc-50 px-4 py-4 text-sm font-semibold min-h-11 text-zinc-900"
       >
         + Übung hinzufügen
       </button>

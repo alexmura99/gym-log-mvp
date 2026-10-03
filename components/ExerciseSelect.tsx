@@ -97,7 +97,7 @@ export default function ExerciseSelect({
               key={exercise.id}
               type="button"
               onClick={() => onSelect(exercise)}
-              className={`min-w-0 rounded-2xl border px-3 py-3 text-left text-sm! font-semibold! transition hyphens-auto [overflow-wrap:anywhere] ${
+              className={`min-w-0 rounded-2xl border px-3 py-3 text-left text-sm font-semibold min-h-11 transition hyphens-auto [overflow-wrap:anywhere] ${
                 isSelected
                   ? "border-amber-400 bg-amber-100 text-zinc-950"
                   : "border-zinc-200 bg-white text-zinc-700"
@@ -115,7 +115,7 @@ export default function ExerciseSelect({
       {!exactMatch && query.trim() && (
         <div className="space-y-2 rounded-2xl border border-dashed border-zinc-300 bg-white p-3">
           <select
-            className="w-full rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-sm"
+            className="w-full rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-base"
             value={muscleGroup}
             onChange={(event) => setMuscleGroup(event.target.value)}
           >
@@ -130,7 +130,7 @@ export default function ExerciseSelect({
             type="button"
             onClick={() => void createExercise()}
             disabled={isCreating}
-            className="w-full rounded-2xl bg-zinc-950 px-4 py-3 text-sm font-semibold text-white disabled:opacity-60"
+            className="w-full rounded-2xl bg-zinc-950 px-4 py-3 text-sm font-semibold min-h-11 text-white disabled:opacity-60"
           >
             {isCreating ? "Erstelle Übung..." : `"${query.trim()}" hinzufügen`}
           </button>

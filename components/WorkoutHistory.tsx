@@ -233,14 +233,14 @@ export default function WorkoutHistory({
                       <button
                         type="button"
                         onClick={() => onEdit(workout)}
-                        className="flex-1 rounded-2xl bg-zinc-950 px-4 py-3 text-sm font-semibold text-white"
+                        className="flex-1 rounded-2xl bg-zinc-950 px-4 py-3 text-sm font-semibold min-h-11 text-white"
                       >
                         Bearbeiten
                       </button>
                       <button
                         type="button"
                         onClick={() => void onDelete(workout.id)}
-                        className="rounded-2xl bg-rose-100 px-4 py-3 text-sm font-semibold text-rose-700"
+                        className="rounded-2xl bg-rose-100 px-4 py-3 text-sm font-semibold min-h-11 text-rose-700"
                       >
                         Löschen
                       </button>

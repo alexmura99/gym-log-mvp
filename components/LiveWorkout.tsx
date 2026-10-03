@@ -121,7 +121,7 @@ export default function LiveWorkout({
             setIsActive(false);
           }
         }}
-        className="w-full rounded-2xl border border-rose-200 bg-white px-4 py-3 text-sm font-semibold text-rose-700"
+        className="w-full rounded-2xl border border-rose-200 bg-white px-4 py-3 text-sm font-semibold min-h-11 text-rose-700"
       >
         Workout verwerfen
       </button>

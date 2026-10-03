@@ -936,7 +936,7 @@ export default function Home() {
             <button
               type="button"
               onClick={logout}
-              className="w-full rounded-2xl bg-zinc-950 px-4 py-4 text-sm font-semibold text-white"
+              className="w-full rounded-2xl bg-zinc-950 px-4 py-4 text-sm font-semibold min-h-11 text-white"
             >
               Logout
             </button>
@@ -1004,7 +1004,7 @@ export default function Home() {
               type="button"
               onClick={() => void ensureDashboardLoaded(user.id, { force: true })}
               disabled={pageLoading}
-              className="shrink-0 rounded-full bg-white px-3 py-2 text-xs font-semibold text-zinc-900 disabled:opacity-60"
+              className="shrink-0 rounded-full bg-white px-3 py-2 text-xs font-semibold min-h-11 text-zinc-900 disabled:opacity-60"
             >
               Erneut versuchen
             </button>
@@ -1027,7 +1027,7 @@ export default function Home() {
                   setActiveTab(tab.id);
                   setProfileView("main");
                 }}
-                className={`min-w-0 truncate rounded-2xl px-0.5 py-3 text-[0.6875rem]! font-semibold! transition ${
+                className={`min-w-0 truncate rounded-2xl px-0.5 py-3 text-[0.6875rem] font-semibold transition ${
                   isActive ? "bg-zinc-950 text-white" : "bg-zinc-100 text-zinc-600"
                 }`}
               >

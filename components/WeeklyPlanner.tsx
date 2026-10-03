@@ -159,7 +159,7 @@ export default function WeeklyPlanner({
                     aria-label={`${weekdayLabel} eine Position nach oben tauschen`}
                     disabled={index === 0}
                     onClick={() => moveByButton(index, -1)}
-                    className="rounded-full bg-white px-3 py-2 text-xs font-semibold text-zinc-900 disabled:opacity-30"
+                    className="rounded-full bg-white px-3 py-2 text-xs font-semibold min-h-11 min-w-11 text-zinc-900 disabled:opacity-30"
                   >
                     ▲
                   </button>
@@ -168,14 +168,14 @@ export default function WeeklyPlanner({
                     aria-label={`${weekdayLabel} eine Position nach unten tauschen`}
                     disabled={index === days.length - 1}
                     onClick={() => moveByButton(index, 1)}
-                    className="rounded-full bg-white px-3 py-2 text-xs font-semibold text-zinc-900 disabled:opacity-30"
+                    className="rounded-full bg-white px-3 py-2 text-xs font-semibold min-h-11 min-w-11 text-zinc-900 disabled:opacity-30"
                   >
                     ▼
                   </button>
                   <button
                     type="button"
                     onClick={() => startEditing(day)}
-                    className="rounded-full bg-white px-3 py-2 text-xs font-semibold text-zinc-900"
+                    className="rounded-full bg-white px-3 py-2 text-xs font-semibold min-h-11 text-zinc-900"
                   >
                     Bearbeiten
                   </button>
@@ -270,7 +270,7 @@ export default function WeeklyPlanner({
                       type="button"
                       onClick={() => void submitDay(day.id)}
                       disabled={isSaving}
-                      className="flex-1 rounded-2xl bg-zinc-950 px-4 py-3 text-sm font-semibold text-white disabled:opacity-60"
+                      className="flex-1 rounded-2xl bg-zinc-950 px-4 py-3 text-sm font-semibold min-h-11 text-white disabled:opacity-60"
                     >
                       {isSaving ? "Speichere..." : "Speichern"}
                     </button>
@@ -279,7 +279,7 @@ export default function WeeklyPlanner({
                       onClick={() => {
                         setEditingId(null);
                       }}
-                      className="rounded-2xl border border-zinc-300 px-4 py-3 text-sm font-semibold text-zinc-900"
+                      className="rounded-2xl border border-zinc-300 px-4 py-3 text-sm font-semibold min-h-11 text-zinc-900"
                     >
                       Zurück
                     </button>
@@ -289,7 +289,7 @@ export default function WeeklyPlanner({
                     <button
                       type="button"
                       onClick={() => void onDeleteDay(day.id)}
-                      className="w-full rounded-2xl bg-rose-100 px-4 py-3 text-sm font-semibold text-rose-700"
+                      className="w-full rounded-2xl bg-rose-100 px-4 py-3 text-sm font-semibold min-h-11 text-rose-700"
                     >
                       Trainingstag löschen
                     </button>

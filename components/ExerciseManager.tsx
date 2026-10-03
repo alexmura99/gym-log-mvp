@@ -18,8 +18,7 @@ type ExerciseManagerProps = {
 };
 
 const fieldClass = "w-full rounded-2xl px-4 py-3";
-// "!" nötig: Die unlayered font:inherit-Regel in globals.css überschreibt sonst Größe und Gewicht.
-const smallButton = "rounded-2xl px-4 py-3 text-sm! font-semibold!";
+const smallButton = "min-h-11 rounded-2xl px-4 py-3 text-sm font-semibold";
 
 function workoutCountLabel(count: number) {
   return count === 1 ? "1 Workout" : `${count} Workouts`;
