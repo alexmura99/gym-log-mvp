@@ -76,9 +76,10 @@ Die App läuft auf Vercel und ist mit dem GitHub-Repository verbunden. Jeder Pus
 npm run lint
 npm run build
 npm run test:recommendations
+npm run test:password
 ```
 
-`test:recommendations` führt die Regeln der Empfehlung mit Beispielfällen durch (`scripts/test-recommendations.ts`).
+`test:recommendations` führt die Regeln der Empfehlung mit Beispielfällen durch (`scripts/test-recommendations.ts`), `test:password` die Regeln für neue Passwörter (`scripts/test-password.ts`).
 
 ## Wie die Empfehlung funktioniert
 

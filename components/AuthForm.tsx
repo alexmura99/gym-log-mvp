@@ -1,6 +1,9 @@
 "use client";
 
+import { useState } from "react";
+import PasswordField from "@/components/PasswordField";
 import SafeAreaTop from "@/components/SafeAreaTop";
+import { MIN_PASSWORD_LENGTH, validateNewPassword } from "@/lib/password";
 
 type AuthFormProps = {
   authMode: "login" | "register";
@@ -26,6 +29,16 @@ export default function AuthForm({
   loading,
 }: AuthFormProps) {
   const isLogin = authMode === "login";
+  const [passwordRepeat, setPasswordRepeat] = useState("");
+  // Meldungen erscheinen erst nach dem ersten Absenden oder wenn das Wiederholungsfeld verlassen wird.
+  const [showErrors, setShowErrors] = useState(false);
+  const problems = validateNewPassword(password, passwordRepeat);
+
+  function switchMode(mode: "login" | "register") {
+    setAuthMode(mode);
+    setPasswordRepeat("");
+    setShowErrors(false);
+  }
 
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top,#fef3c7,#f8fafc_55%)] pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] pt-[calc(2rem_+_env(safe-area-inset-top))] pb-[calc(2rem_+_env(safe-area-inset-bottom))] text-zinc-950">
@@ -49,13 +62,24 @@ export default function AuthForm({
               return;
             }
 
-            void (isLogin ? login() : signUp());
+            if (isLogin) {
+              void login();
+              return;
+            }
+
+            setShowErrors(true);
+
+            if (problems.password || problems.repeat) {
+              return;
+            }
+
+            void signUp();
           }}
         >
           <div className="flex bg-zinc-100 rounded-xl p-1">
             <button
               type="button"
-              onClick={() => setAuthMode("login")}
+              onClick={() => switchMode("login")}
               className={`w-1/2 rounded-lg p-3 font-bold ${
                 isLogin ? "bg-amber-500 text-zinc-950" : "text-zinc-700"
               }`}
@@ -65,7 +89,7 @@ export default function AuthForm({
 
             <button
               type="button"
-              onClick={() => setAuthMode("register")}
+              onClick={() => switchMode("register")}
               className={`w-1/2 rounded-lg p-3 font-bold ${
                 !isLogin ? "bg-amber-500 text-zinc-950" : "text-zinc-700"
               }`}
@@ -75,20 +99,38 @@ export default function AuthForm({
           </div>
 
           <input
+            id="auth-email"
+            name="email"
             className="w-full rounded-xl p-4"
             placeholder="E-Mail"
+            aria-label="E-Mail"
             type="email"
+            autoComplete="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
           />
 
-          <input
-            className="w-full rounded-xl p-4"
-            placeholder="Passwort"
-            type="password"
+          <PasswordField
+            id="auth-password"
+            label="Passwort"
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={setPassword}
+            autoComplete={isLogin ? "current-password" : "new-password"}
+            error={!isLogin && showErrors ? problems.password : null}
+            hint={isLogin ? undefined : `Mindestens ${MIN_PASSWORD_LENGTH} Zeichen.`}
           />
+
+          {!isLogin && (
+            <PasswordField
+              id="auth-password-repeat"
+              label="Passwort wiederholen"
+              value={passwordRepeat}
+              onChange={setPasswordRepeat}
+              autoComplete="new-password"
+              error={showErrors ? problems.repeat : null}
+              onBlur={() => setShowErrors(true)}
+            />
+          )}
 
           <button
             type="submit"
