@@ -148,7 +148,11 @@ create trigger on_auth_user_created
   for each row execute procedure public.handle_new_user();
 
 grant usage on schema public to authenticated;
-grant select, insert, update, delete on public.profiles to authenticated;
+grant select, insert, delete on public.profiles to authenticated;
+-- Seit Migration 003 darf ein Nutzer in profiles nur display_name ändern. Das revoke nimmt auch
+-- ein früher vergebenes volles Update-Recht zurück (ein grant allein würde es nicht entfernen).
+revoke update on public.profiles from authenticated;
+grant update (display_name) on public.profiles to authenticated;
 grant select, insert, update, delete on public.exercises to authenticated;
 grant select, insert, update, delete on public.weekly_plan_days to authenticated;
 grant select, insert, update, delete on public.workouts to authenticated;
@@ -259,14 +263,43 @@ create policy workout_exercises_select_own on public.workout_exercises
 for select to authenticated
 using (auth.uid() = user_id);
 
+-- Seit Migration 003: das Workout gehört mir und die Übung ist öffentlich oder meine.
 create policy workout_exercises_insert_own on public.workout_exercises
 for insert to authenticated
-with check (auth.uid() = user_id);
+with check (
+  auth.uid() = user_id
+  and exists (
+    select 1
+    from public.workouts w
+    where w.id = workout_exercises.workout_id
+      and w.user_id = auth.uid()
+  )
+  and exists (
+    select 1
+    from public.exercises e
+    where e.id = workout_exercises.exercise_id
+      and (e.is_public or e.user_id = auth.uid())
+  )
+);
 
 create policy workout_exercises_update_own on public.workout_exercises
 for update to authenticated
 using (auth.uid() = user_id)
-with check (auth.uid() = user_id);
+with check (
+  auth.uid() = user_id
+  and exists (
+    select 1
+    from public.workouts w
+    where w.id = workout_exercises.workout_id
+      and w.user_id = auth.uid()
+  )
+  and exists (
+    select 1
+    from public.exercises e
+    where e.id = workout_exercises.exercise_id
+      and (e.is_public or e.user_id = auth.uid())
+  )
+);
 
 create policy workout_exercises_delete_own on public.workout_exercises
 for delete to authenticated
@@ -276,14 +309,33 @@ create policy sets_select_own on public.sets
 for select to authenticated
 using (auth.uid() = user_id);
 
+-- Seit Migration 003: der Übungsblock gehört mir und liegt im selben Workout.
 create policy sets_insert_own on public.sets
 for insert to authenticated
-with check (auth.uid() = user_id);
+with check (
+  auth.uid() = user_id
+  and exists (
+    select 1
+    from public.workout_exercises we
+    where we.id = sets.workout_exercise_id
+      and we.workout_id = sets.workout_id
+      and we.user_id = auth.uid()
+  )
+);
 
 create policy sets_update_own on public.sets
 for update to authenticated
 using (auth.uid() = user_id)
-with check (auth.uid() = user_id);
+with check (
+  auth.uid() = user_id
+  and exists (
+    select 1
+    from public.workout_exercises we
+    where we.id = sets.workout_exercise_id
+      and we.workout_id = sets.workout_id
+      and we.user_id = auth.uid()
+  )
+);
 
 create policy sets_delete_own on public.sets
 for delete to authenticated
