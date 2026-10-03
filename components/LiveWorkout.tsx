@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import WorkoutForm from "@/components/WorkoutForm";
+import { toLocalIsoDate } from "@/lib/dates";
 import {
   clearWorkoutDraft,
   liveWorkoutDraftKey,
@@ -36,7 +37,7 @@ export default function LiveWorkout({
   const draftKey = userId ? liveWorkoutDraftKey(userId) : undefined;
   // Ein gespeicherter Entwurf bedeutet: Es läuft noch ein Workout.
   const [isActive, setIsActive] = useState(() => readWorkoutDraft(draftKey) !== null);
-  const today = new Date().toISOString().split("T")[0];
+  const today = toLocalIsoDate();
 
   if (!isActive) {
     return (

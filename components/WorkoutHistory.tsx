@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { formatDateGerman, parseIsoDate, toLocalIsoDate } from "@/lib/dates";
 import type { Workout } from "@/types/workout";
 
 type WorkoutHistoryProps = {
@@ -14,15 +15,6 @@ type WorkoutWeekGroup = {
   label: string;
   workouts: Workout[];
 };
-
-function formatDate(date: string) {
-  return new Intl.DateTimeFormat("de-DE", {
-    weekday: "short",
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  }).format(new Date(date));
-}
 
 function getWeekStart(date: Date) {
   const start = new Date(date);
@@ -58,8 +50,8 @@ function groupHistoryByWeek(history: Workout[]) {
   const groupMap = new Map<string, WorkoutWeekGroup>();
 
   for (const workout of history) {
-    const weekStart = getWeekStart(new Date(workout.date));
-    const weekKey = weekStart.toISOString().split("T")[0];
+    const weekStart = getWeekStart(parseIsoDate(workout.date));
+    const weekKey = toLocalIsoDate(weekStart);
     const existing = groupMap.get(weekKey);
 
     if (existing) {
@@ -117,7 +109,7 @@ export default function WorkoutHistory({
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <p className="text-xs font-semibold uppercase tracking-[0.24em] text-zinc-500">
-                        {formatDate(workout.date)}
+                        {formatDateGerman(workout.date)}
                       </p>
                       <h3 className="text-lg font-bold text-zinc-950">{workout.title}</h3>
                       {workout.notes && (

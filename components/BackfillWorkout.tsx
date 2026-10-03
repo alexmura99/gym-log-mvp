@@ -1,6 +1,7 @@
 "use client";
 
 import WorkoutForm from "@/components/WorkoutForm";
+import { toLocalIsoDate } from "@/lib/dates";
 import type {
   Exercise,
   RecommendationResult,
@@ -28,7 +29,7 @@ export default function BackfillWorkout({
   onCreateExercise,
   getRecommendation,
 }: BackfillWorkoutProps) {
-  const defaultDate = new Date().toISOString().split("T")[0];
+  const defaultDate = toLocalIsoDate();
 
   return (
     <div className="space-y-4">
@@ -50,7 +51,7 @@ export default function BackfillWorkout({
       )}
 
       <WorkoutForm
-        key={editingWorkout?.id ?? `backfill-${defaultDate}`}
+        key={editingWorkout?.id ?? "backfill-new"}
         mode="backfill"
         exercises={exercises}
         initialWorkout={editingWorkout}

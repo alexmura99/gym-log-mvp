@@ -13,6 +13,7 @@ import {
   OFFLINE_TEXT_SAVE_WORKOUT,
   describeError,
 } from "@/lib/errors";
+import { formatDateGerman, toLocalIsoDate } from "@/lib/dates";
 import { fetchAll } from "@/lib/fetchAll";
 import { getWorkoutRecommendation } from "@/lib/recommendations";
 import { APP_TABS, WEEKDAY_OPTIONS } from "@/types/workout";
@@ -26,10 +27,6 @@ import type {
   WorkoutSaveInput,
   WorkoutSet,
 } from "@/types/workout";
-
-function todayIsoDate() {
-  return new Date().toISOString().split("T")[0];
-}
 
 function sortPlannerDays(days: PlannerDay[]) {
   return [...days].sort((left, right) => left.position - right.position);
@@ -752,7 +749,7 @@ export default function Home() {
               <h1 className="text-3xl font-black tracking-tight">Gym Log</h1>
             </div>
             <span className="rounded-full bg-amber-100 px-3 py-2 text-xs font-semibold text-amber-900">
-              {pageLoading ? "Sync..." : todayIsoDate()}
+              {pageLoading ? "Sync..." : formatDateGerman(toLocalIsoDate())}
             </span>
           </div>
 

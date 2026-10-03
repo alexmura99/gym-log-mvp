@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import ExerciseSelect from "@/components/ExerciseSelect";
+import { toLocalIsoDate } from "@/lib/dates";
 import {
   clearWorkoutDraft,
   readWorkoutDraft,
@@ -55,7 +56,7 @@ function createDraftExercise(): WorkoutDraftExercise {
 function buildDraftFromWorkout(workout: Workout | null | undefined) {
   if (!workout) {
     return {
-      date: new Date().toISOString().split("T")[0],
+      date: toLocalIsoDate(),
       title: "",
       notes: "",
       exercises: [createDraftExercise()],
