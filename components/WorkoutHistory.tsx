@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { formatDateGerman, parseIsoDate, toLocalIsoDate } from "@/lib/dates";
+import { MUSCLE_GROUPS } from "@/types/workout";
 import type { Workout } from "@/types/workout";
 
 type WorkoutHistoryProps = {
@@ -10,11 +11,54 @@ type WorkoutHistoryProps = {
   onDelete: (workoutId: string) => Promise<void>;
 };
 
+type WeekSetStats = {
+  total: number;
+  perGroup: Array<{ group: string; count: number }>;
+};
+
 type WorkoutWeekGroup = {
   key: string;
   label: string;
   workouts: Workout[];
+  stats: WeekSetStats;
 };
+
+const UNKNOWN_GROUP = "Sonstige";
+
+// Zählt alle gespeicherten Sätze einer Woche nach der Muskelgruppe ihrer Übung. Jede Übung zählt
+// nur für ihre eine Gruppe. Reihenfolge: feste Reihenfolge der Muskelgruppen, weitere Gruppen
+// alphabetisch, "Sonstige" (Übung unbekannt) zuletzt.
+function computeWeekStats(workouts: Workout[]): WeekSetStats {
+  const counts = new Map<string, number>();
+  let total = 0;
+
+  for (const workout of workouts) {
+    for (const row of workout.workout_exercises) {
+      const group = row.exercise?.muscle_group ?? UNKNOWN_GROUP;
+      counts.set(group, (counts.get(group) ?? 0) + row.sets.length);
+      total += row.sets.length;
+    }
+  }
+
+  const known = MUSCLE_GROUPS as readonly string[];
+  const rank = (group: string) =>
+    group === UNKNOWN_GROUP ? 2 : known.includes(group) ? 0 : 1;
+
+  const perGroup = [...counts.entries()]
+    .filter(([, count]) => count > 0)
+    .map(([group, count]) => ({ group, count }))
+    .sort((left, right) => {
+      if (rank(left.group) !== rank(right.group)) {
+        return rank(left.group) - rank(right.group);
+      }
+
+      return rank(left.group) === 0
+        ? known.indexOf(left.group) - known.indexOf(right.group)
+        : left.group.localeCompare(right.group);
+    });
+
+  return { total, perGroup };
+}
 
 function getWeekStart(date: Date) {
   const start = new Date(date);
@@ -63,10 +107,17 @@ function groupHistoryByWeek(history: Workout[]) {
       key: weekKey,
       label: formatWeekLabel(weekStart),
       workouts: [workout],
+      stats: { total: 0, perGroup: [] },
     });
   }
 
-  return [...groupMap.values()];
+  const groups = [...groupMap.values()];
+
+  for (const group of groups) {
+    group.stats = computeWeekStats(group.workouts);
+  }
+
+  return groups;
 }
 
 export default function WorkoutHistory({
@@ -75,7 +126,7 @@ export default function WorkoutHistory({
   onDelete,
 }: WorkoutHistoryProps) {
   const [expandedId, setExpandedId] = useState<string | null>(history[0]?.id ?? null);
-  const weekGroups = groupHistoryByWeek(history);
+  const weekGroups = useMemo(() => groupHistoryByWeek(history), [history]);
 
   return (
     <div className="space-y-3 rounded-4xl border border-white/80 bg-white p-4 shadow-[0_18px_60px_rgba(15,23,42,0.08)]">
@@ -92,9 +143,29 @@ export default function WorkoutHistory({
 
       {weekGroups.map((week) => (
         <section key={week.key} className="space-y-2">
-          <p className="px-1 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500">
-            {week.label}
-          </p>
+          <div className="flex items-baseline justify-between gap-3 px-1">
+            <p className="min-w-0 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500">
+              {week.label}
+            </p>
+            {week.stats.total > 0 && (
+              <p className="shrink-0 whitespace-nowrap text-xs text-zinc-400">
+                {week.stats.total === 1 ? "1 Satz" : `${week.stats.total} Sätze`}
+              </p>
+            )}
+          </div>
+
+          {week.stats.perGroup.length > 0 && (
+            <ul aria-label="Sätze pro Muskelgruppe" className="flex flex-wrap gap-1.5 px-1">
+              {week.stats.perGroup.map(({ group, count }) => (
+                <li
+                  key={group}
+                  className="whitespace-nowrap rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-900"
+                >
+                  {group} <span className="font-black">{count}</span>
+                </li>
+              ))}
+            </ul>
+          )}
 
           {week.workouts.map((workout) => {
             const isExpanded = expandedId === workout.id;
